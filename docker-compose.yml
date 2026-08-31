@@ -1,0 +1,49 @@
+# Docker Compose stack for Face Insight Demo (Fase 1 skeleton).
+# Single source of truth for service topology (Constitution Principle IV).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: faceinsight
+      POSTGRES_PASSWORD: faceinsight
+      POSTGRES_DB: faceinsight
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faceinsight -d faceinsight"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://faceinsight:faceinsight@postgres:5432/faceinsight"
+      VERIFICATION_THRESHOLD: "0.5"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./usuarios:/app/usuarios:rw
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn face_insight.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
+volumes:
+  pgdata:

@@ -1,0 +1,13 @@
+extensions:
+  quality-gates:
+    name: "Quality Gates"
+    version: "1.0.0"
+
+  codebase-memory:
+    name: "Codebase Memory"
+    version: "1.0.0"
+
+# Hooks are managed by the speckit-orchestrator pipeline, not by command hooks.
+# - before_plan reindex: runs inline in speckit-plan Step 0
+# - after_tasks analyze: orchestrator Step 6
+# - after_implement converge: orchestrator Step 8

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "edit": {
+      "opencode.json": "ask",
+      ".opencode/**": "ask"
+    },
+    "bash": {
+      "rm -rf*": "deny",
+      "git reset*": "deny",
+      "git clean*": "deny",
+      "git push*": "deny",
+      "git checkout*": "deny"
+    }
+  },
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "enabled": true
+    },
+    "grep-app": {
+      "type": "remote",
+      "url": "https://mcp.grep.app",
+      "enabled": true
+    },
+    "websearch": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa",
+      "enabled": true
+    }
+  },
+  "plugin": [
+    "@opencode-trace/plugin"
+  ]
+}
