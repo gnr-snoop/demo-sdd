@@ -17,7 +17,11 @@ import Welcome from "../pages/Welcome";
 import Onboarding from "../pages/Onboarding";
 
 function renderWithSession(authenticated: boolean, node: React.ReactNode) {
-  return render(<SessionProvider initialAuthenticated={authenticated}>{node}</SessionProvider>);
+  return render(
+    <SessionProvider initialAuthenticated={authenticated} skipBootstrap>
+      {node}
+    </SessionProvider>,
+  );
 }
 
 describe("App router", () => {
@@ -51,7 +55,17 @@ describe("App router", () => {
 
   it("renders the Login view at /login", async () => {
     const testRouter = createMemoryRouter(
-      [{ path: "/login", element: <Login /> }],
+      [
+        {
+          path: "/",
+          element: (
+            <SessionProvider skipBootstrap>
+              <Outlet />
+            </SessionProvider>
+          ),
+          children: [{ path: "login", element: <Login /> }],
+        },
+      ],
       { initialEntries: ["/login"] },
     );
     render(<RouterProvider router={testRouter} />);
@@ -65,33 +79,22 @@ describe("Route protection", () => {
       <Routes>
         <Route path="/" element={<Outlet />}>
           <Route path="login" element={<Login />} />
-          <Route
-            path="dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="dashboard" element={<ProtectedRoute />}>
+            <Route index element={<Dashboard />} />
+          </Route>
         </Route>
       </Routes>
     );
   }
 
   it("redirects /dashboard to /login when unauthenticated", async () => {
-    renderWithSession(
-      false,
-      <MemoryRouter initialEntries={["/dashboard"]}>{protectedTree()}</MemoryRouter>,
-    );
+    renderWithSession(false, <MemoryRouter initialEntries={["/dashboard"]}>{protectedTree()}</MemoryRouter>);
     expect(await screen.findByTestId("page-login")).toBeInTheDocument();
     expect(screen.queryByTestId("page-dashboard")).not.toBeInTheDocument();
   });
 
   it("renders /dashboard when authenticated", async () => {
-    renderWithSession(
-      true,
-      <MemoryRouter initialEntries={["/dashboard"]}>{protectedTree()}</MemoryRouter>,
-    );
+    renderWithSession(true, <MemoryRouter initialEntries={["/dashboard"]}>{protectedTree()}</MemoryRouter>);
     expect(await screen.findByTestId("page-dashboard")).toBeInTheDocument();
   });
 });

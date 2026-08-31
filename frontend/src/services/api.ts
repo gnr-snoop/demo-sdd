@@ -20,13 +20,12 @@ export interface FaceLoginResponse {
 }
 
 export interface AuthMeResponse {
-  userId: string;
-  status: "authenticated";
-  expiresAt: string;
+  authenticated: boolean;
+  userId: string | null;
 }
 
 export interface LogoutResponse {
-  status: "logged_out";
+  status: "ok";
 }
 
 export interface MoodResponse {
@@ -59,6 +58,30 @@ export class OnboardingApiError extends Error {
     this.name = "OnboardingApiError";
     this.code = code;
   }
+}
+
+export class AuthApiError extends Error {
+  readonly code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "AuthApiError";
+    this.code = code;
+  }
+}
+
+async function parseError(resp: Response, defaultCode = "internal_error"): Promise<never> {
+  let code = defaultCode;
+  let message = "Ocurrió un error inesperado. Inténtalo de nuevo.";
+  try {
+    const errBody = (await resp.json()) as { error?: ErrorBody };
+    if (errBody?.error?.code && errBody?.error?.message) {
+      code = errBody.error.code;
+      message = errBody.error.message;
+    }
+  } catch {
+    // Non-JSON error body — keep the generic default.
+  }
+  throw new AuthApiError(code, message);
 }
 
 function headersWithSession(sessionId?: string): HeadersInit {
@@ -98,46 +121,46 @@ export const api = {
   async faceLogin(identifier: string, image: Blob): Promise<FaceLoginResponse> {
     const body = await multipart(identifier, image);
     const resp = await fetch(`${API_BASE_URL}/api/auth/face-login`, { method: "POST", body });
+    if (!resp.ok) {
+      await parseError(resp);
+    }
     return resp.json();
   },
 
-  async authMe(sessionId?: string): Promise<AuthMeResponse> {
-    const resp = await fetch(`${API_BASE_URL}/api/auth/me`, { headers: headersWithSession(sessionId) });
+  async getMe(): Promise<AuthMeResponse> {
+    const resp = await fetch(`${API_BASE_URL}/api/auth/me`);
+    if (!resp.ok) {
+      await parseError(resp, "unauthenticated");
+    }
     return resp.json();
   },
 
-  async logout(sessionId?: string): Promise<LogoutResponse> {
-    const resp = await fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: "POST",
-      headers: headersWithSession(sessionId),
-    });
+  async logout(): Promise<LogoutResponse> {
+    const resp = await fetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST" });
     return resp.json();
   },
 
-  async analysisMood(image: Blob, sessionId?: string): Promise<MoodResponse> {
+  async analysisMood(image: Blob): Promise<MoodResponse> {
     const body = await multipart(undefined, image);
     const resp = await fetch(`${API_BASE_URL}/api/analysis/mood`, {
       method: "POST",
-      headers: headersWithSession(sessionId),
       body,
     });
     return resp.json();
   },
 
-  async analysisAge(image: Blob, sessionId?: string): Promise<AgeResponse> {
+  async analysisAge(image: Blob): Promise<AgeResponse> {
     const body = await multipart(undefined, image);
     const resp = await fetch(`${API_BASE_URL}/api/analysis/age`, {
       method: "POST",
-      headers: headersWithSession(sessionId),
       body,
     });
     return resp.json();
   },
 
-  async deleteFaceData(userId: string, sessionId?: string): Promise<DeleteFaceDataResponse> {
+  async deleteFaceData(userId: string): Promise<DeleteFaceDataResponse> {
     const resp = await fetch(`${API_BASE_URL}/api/users/${userId}/face-data`, {
       method: "DELETE",
-      headers: headersWithSession(sessionId),
     });
     return resp.json();
   },

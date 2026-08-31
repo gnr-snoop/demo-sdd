@@ -72,6 +72,9 @@ def wire_mock_adapters(app: FastAPI) -> None:
     and stores it on ``app.state.onboarding_service``. No DB unit-of-work is
     wired here (contract tests run without a DB); the service falls back to
     sequential in-memory repository saves.
+
+    Spec 003 (T019): builds a ``LoginService`` from the mock ports +
+    ``CosineComparison`` + ``SessionManager``, and a ``SessionCookieService``.
     """
     from .adapters.mock import (  # noqa: PLC0415
         MockAgeEstimator,
@@ -83,6 +86,9 @@ def wire_mock_adapters(app: FastAPI) -> None:
         MockSessionManager,
         MockUserRepository,
     )
+    from .adapters.http.session_cookie import SessionCookieService  # noqa: PLC0415
+    from .domain.comparison import CosineComparison  # noqa: PLC0415
+    from .domain.login import LoginService  # noqa: PLC0415
     from .domain.onboarding import OnboardingService  # noqa: PLC0415
 
     settings = get_settings()
@@ -108,12 +114,32 @@ def wire_mock_adapters(app: FastAPI) -> None:
     # No atomic DB unit-of-work for the all-mock wiring.
     app.state.unit_of_work = None
 
+    # Spec 003 login wiring.
+    app.state.comparison = CosineComparison()
+    app.state.session_cookie_service = SessionCookieService(settings)
+    app.state.login_service = LoginService(
+        detector=app.state.detector,
+        embedder=app.state.embedder,
+        comparison=app.state.comparison,
+        user_repository=app.state.user_repository,
+        face_template_repository=app.state.face_template_repository,
+        session_manager=app.state.session_manager,
+        quality_threshold=settings.quality_threshold,
+        verification_threshold=settings.verification_threshold,
+    )
+
 
 def create_app() -> FastAPI:
     """Application factory."""
+    from .api.dependencies import UnauthenticatedError, unauthenticated_response  # noqa: PLC0415
+
     app = FastAPI(title="Face Insight Demo", version="0.1.0", lifespan=lifespan)
     register_routes(app)
     wire_mock_adapters(app)
+
+    @app.exception_handler(UnauthenticatedError)
+    async def _unauthenticated_handler(_request, _exc):  # noqa: ANN001
+        return unauthenticated_response()
 
     @app.get("/health", tags=["infra"])
     async def health() -> dict[str, str]:
@@ -158,6 +184,12 @@ def create_onboarding_app(
     register_routes(app)
     wire_mock_adapters(app)
 
+    from .api.dependencies import UnauthenticatedError, unauthenticated_response  # noqa: PLC0415
+
+    @app.exception_handler(UnauthenticatedError)
+    async def _unauth_handler(_request, _exc):  # noqa: ANN001
+        return unauthenticated_response()
+
     # Override onboarding-relevant ports with real/test doubles.
     app.state.detector = detector
     app.state.embedder = embedder
@@ -185,6 +217,92 @@ def create_onboarding_app(
         embedding_model_version=settings.embedding_model_version,
     )
     app.state.unit_of_work = unit_of_work
+    return app
+
+
+def create_auth_app(
+    detector: object,
+    embedder: object,
+    session_factory: object | None = None,
+    image_storage: object | None = None,
+    quality_threshold: float | None = None,
+    verification_threshold: float | None = None,
+) -> FastAPI:
+    """Application factory wired for login/session integration tests (spec 003).
+
+    Uses the provided mock ``detector``/``embedder`` (no GPU/network), real
+    SQLAlchemy async repositories + ``SqlAlchemySessionManager`` (when
+    ``session_factory`` is given), and a real ``SessionCookieService``. Onboarding
+    is also wired so tests can seed a User + FaceTemplate via POST /api/onboarding.
+    """
+    from .adapters.db.repositories import (  # noqa: PLC0415
+        SqlAlchemyFaceTemplateRepository,
+        SqlAlchemyUnitOfWork,
+        SqlAlchemyUserRepository,
+    )
+    from .adapters.db.session_manager import SqlAlchemySessionManager  # noqa: PLC0415
+    from .adapters.fs.image_storage import FilesystemImageStorage  # noqa: PLC0415
+    from .adapters.http.session_cookie import SessionCookieService  # noqa: PLC0415
+    from .domain.comparison import CosineComparison  # noqa: PLC0415
+    from .domain.login import LoginService  # noqa: PLC0415
+    from .domain.onboarding import OnboardingService  # noqa: PLC0415
+
+    settings = get_settings()
+    app = FastAPI(title="Face Insight Demo (auth test)", version="0.1.0", lifespan=lifespan)
+    register_routes(app)
+    wire_mock_adapters(app)
+
+    from .api.dependencies import UnauthenticatedError, unauthenticated_response  # noqa: PLC0415
+
+    @app.exception_handler(UnauthenticatedError)
+    async def _unauth_handler(_request, _exc):  # noqa: ANN001
+        return unauthenticated_response()
+
+    # Override detector/embedder with the provided (scriptable) test doubles.
+    app.state.detector = detector
+    app.state.embedder = embedder
+    if image_storage is None:
+        image_storage = FilesystemImageStorage()
+    app.state.image_storage = image_storage
+
+    if session_factory is not None:
+        user_repo = SqlAlchemyUserRepository(session_factory)
+        template_repo = SqlAlchemyFaceTemplateRepository(session_factory)
+        unit_of_work = SqlAlchemyUnitOfWork(session_factory)
+        session_manager = SqlAlchemySessionManager(session_factory)
+    else:
+        # Fall back to the in-memory mock repos + mock session manager (no DB).
+        user_repo = app.state.user_repository
+        template_repo = app.state.face_template_repository
+        unit_of_work = None
+        session_manager = app.state.session_manager
+
+    app.state.session_manager = session_manager
+
+    app.state.onboarding_service = OnboardingService(
+        detector=detector,
+        embedder=embedder,
+        user_repository=user_repo,
+        face_template_repository=template_repo,
+        image_storage=image_storage,
+        quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+        embedding_model_version=settings.embedding_model_version,
+    )
+    app.state.unit_of_work = unit_of_work
+
+    # Login wiring (spec 003).
+    app.state.comparison = CosineComparison()
+    app.state.session_cookie_service = SessionCookieService(settings)
+    app.state.login_service = LoginService(
+        detector=detector,
+        embedder=embedder,
+        comparison=app.state.comparison,
+        user_repository=user_repo,
+        face_template_repository=template_repo,
+        session_manager=session_manager,
+        quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+        verification_threshold=settings.verification_threshold if verification_threshold is None else verification_threshold,
+    )
     return app
 
 

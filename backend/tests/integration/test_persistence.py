@@ -70,13 +70,21 @@ async def test_migrations_create_four_tables(require_db) -> None:
 
     engine = create_async_engine(get_settings().database_url)
 
-    # Apply migrations via Alembic programmatically.
+    # Apply migrations via Alembic programmatically. Run in an isolated thread:
+    # alembic/env.py calls asyncio.run() at import time, which is forbidden
+    # inside the running pytest-asyncio event loop.
+    import threading
     from alembic.config import Config
     from alembic import command
 
-    cfg = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", get_settings().database_url)
-    command.upgrade(cfg, "head")
+    def _run_upgrade() -> None:
+        cfg = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+        cfg.set_main_option("sqlalchemy.url", get_settings().database_url)
+        command.upgrade(cfg, "head")
+
+    t = threading.Thread(target=_run_upgrade)
+    t.start()
+    t.join()
 
     async with engine.connect() as conn:
         tables = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_table_names())
@@ -90,12 +98,18 @@ async def test_migrations_create_four_tables(require_db) -> None:
 @pytest.mark.asyncio
 async def test_migrations_idempotent(require_db) -> None:
     """Re-applying migrations is a no-op (SC-006)."""
+    import threading
     from alembic import command
     from alembic.config import Config
 
     from face_insight.config import get_settings
 
-    cfg = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", get_settings().database_url)
-    command.upgrade(cfg, "head")  # first apply
-    command.upgrade(cfg, "head")  # idempotent re-apply — must not raise
+    def _run_upgrade() -> None:
+        cfg = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+        cfg.set_main_option("sqlalchemy.url", get_settings().database_url)
+        command.upgrade(cfg, "head")  # first apply
+        command.upgrade(cfg, "head")  # idempotent re-apply — must not raise
+
+    t = threading.Thread(target=_run_upgrade)
+    t.start()
+    t.join()

@@ -8,8 +8,8 @@ import Dashboard from "./pages/Dashboard";
 
 // Four routes (FR-003): /, /onboarding, /login, /dashboard.
 // /dashboard is wrapped in ProtectedRoute (FR-004) — redirects to /login when
-// no session placeholder is present. SessionProvider wraps the outlet so the
-// in-memory session flag is available to all child routes.
+// unauthenticated. SessionProvider wraps the outlet so the session state from
+// GET /api/auth/me is available to all child routes.
 const routes: RouteObject[] = [
   {
     path: "/",
@@ -24,11 +24,8 @@ const routes: RouteObject[] = [
       { path: "login", element: <Login /> },
       {
         path: "dashboard",
-        element: (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        ),
+        element: <ProtectedRoute />,
+        children: [{ index: true, element: <Dashboard /> }],
       },
     ],
   },

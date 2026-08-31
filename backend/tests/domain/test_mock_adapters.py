@@ -71,14 +71,20 @@ def test_mock_mood_estimator_deterministic():
 
 
 # --- SessionManager --------------------------------------------------------
-def test_mock_session_manager_deterministic():
+@pytest.mark.asyncio
+async def test_mock_session_manager_deterministic():
+    from datetime import timedelta
+
+    from face_insight.adapters.mock.constants import FIXED_NOW
+
     sm = MockSessionManager()
-    s1 = sm.create(FIXED_USER_ID)
-    s2 = MockSessionManager().create(FIXED_USER_ID)
-    # Fixed user → fixed session id and timestamps.
+    s1 = await sm.create(FIXED_USER_ID, FIXED_NOW, timedelta(seconds=1800))
+    s2 = await MockSessionManager().create(FIXED_USER_ID, FIXED_NOW, timedelta(seconds=1800))
+    # Fixed user + fixed now → fixed session id and timestamps.
     assert s1.id == s2.id
     assert s1.created_at == s2.created_at
-    assert sm.is_active(s1.id)
+    assert s1.is_valid(FIXED_NOW)
+    assert await sm.get_valid(s1.id, FIXED_NOW) is not None
 
 
 # --- UserRepository --------------------------------------------------------

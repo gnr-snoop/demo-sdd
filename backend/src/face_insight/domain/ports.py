@@ -7,8 +7,9 @@ not in the domain (research R-1).
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Protocol, runtime_checkable
+from uuid import UUID
 
 from .entities import AnalysisRequest, AuthSession, FaceTemplate, User
 from .result_types import AgeResult, DetectionResult, Embedding, MoodResult
@@ -35,11 +36,29 @@ class MoodEstimator(Protocol):
 
 
 @runtime_checkable
+class Comparison(Protocol):
+    """1:1 face-embedding comparison port (spec 003, R-1).
+
+    Implementations return cosine similarity in [-1, 1]. A dimension mismatch
+    raises ``ComparisonError`` (mapped to ``internal_error`` by the use-case).
+    """
+
+    def compare(self, a: list[float], b: list[float]) -> float: ...
+
+
+@runtime_checkable
 class SessionManager(Protocol):
-    def create(self, user_id: object) -> AuthSession: ...
-    def get(self, session_id: object) -> Optional[AuthSession]: ...
-    def revoke(self, session_id: object) -> None: ...
-    def is_active(self, session_id: object) -> bool: ...
+    """Server-side AuthSession lifecycle port (spec 003, R-2).
+
+    ``get_valid`` returns the row iff it exists, ``revoked_at IS NULL``, and
+    ``expires_at > now``; otherwise ``None``. ``revoke`` is idempotent.
+    """
+
+    async def create(self, user_id: UUID, now: datetime, lifetime: timedelta) -> AuthSession: ...
+
+    async def get_valid(self, session_id: UUID, now: datetime) -> Optional[AuthSession]: ...
+
+    async def revoke(self, session_id: UUID, now: datetime) -> None: ...
 
 
 @runtime_checkable

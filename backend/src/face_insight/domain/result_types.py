@@ -38,3 +38,16 @@ class AgeResult:
     estimated_age: int
     range: tuple[int, int]
     model_version: str
+
+
+@dataclass(frozen=True)
+class ComparisonResult:
+    """Outcome of a 1:1 face verification comparison (spec 003, R-1).
+
+    ``similarity`` is the cosine similarity in [-1, 1]; ``accepted`` is True iff
+    ``similarity >= verification_threshold``. Not persisted; not logged (only
+    the accept/reject decision is logged, never the score — FR-023/SC-013).
+    """
+
+    similarity: float
+    accepted: bool

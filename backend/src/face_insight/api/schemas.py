@@ -21,16 +21,28 @@ class FaceLoginResponse(BaseModel):
     status: str = "authenticated"
 
 
+# Spec 003 real auth response shapes (supersede the spec 001 stubs).
+class LoginResponse(BaseModel):
+    """Exactly {userId, status} — no expiresAt (FR-005)."""
+
+    userId: str
+    status: str = "authenticated"
+
+
+class MeResponse(BaseModel):
+    authenticated: bool
+    userId: str | None = None
+
+
+class LogoutResponse(BaseModel):
+    status: str = "ok"
+
+
 # --- Auth me (GET /api/auth/me) --------------------------------------------
 class AuthMeResponse(BaseModel):
     userId: str
     status: str = "authenticated"
     expiresAt: str
-
-
-# --- Logout (POST /api/auth/logout) ----------------------------------------
-class LogoutResponse(BaseModel):
-    status: str = "logged_out"
 
 
 # --- Analysis: mood (POST /api/analysis/mood) ------------------------------

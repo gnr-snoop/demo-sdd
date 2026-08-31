@@ -65,6 +65,50 @@ async def scriptable_client(scriptable_app) -> AsyncIterator[AsyncClient]:
         yield ac
 
 
+# --- Spec 003 auth fixtures (T013/T020/T032) -------------------------------
+@pytest.fixture
+async def auth_app():
+    """App wired with ScriptableMockDetector + ScriptableMockEmbedder for login
+    contract tests. Mock repos (no DB) — seeded per-test via app.state."""
+    from face_insight.adapters.mock import ScriptableMockDetector, ScriptableMockEmbedder
+
+    from face_insight.main import create_auth_app
+
+    app = create_auth_app(
+        detector=ScriptableMockDetector(),
+        embedder=ScriptableMockEmbedder(),
+        session_factory=None,
+    )
+    return app
+
+
+@pytest.fixture
+async def auth_client(auth_app) -> AsyncIterator[AsyncClient]:
+    transport = ASGITransport(app=auth_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+
+
+async def seed_user_template(app, identifier="demo@example.com"):
+    """Seed the mock repos with a User + FaceTemplate (mock 128-dim 0.1 embedding)."""
+    from datetime import datetime, timezone
+
+    from face_insight.adapters.mock.constants import EMBEDDING_DIM, EMBEDDING_FILL, EMBED_MODEL_VERSION
+    from face_insight.domain.entities import create_face_template, create_user
+
+    now = datetime(2026, 8, 31, 12, 0, 0, tzinfo=timezone.utc)
+    user = create_user(identifier, now=lambda: now)
+    await app.state.user_repository.save(user)
+    template = create_face_template(
+        user.id,
+        [EMBEDDING_FILL] * EMBEDDING_DIM,
+        EMBED_MODEL_VERSION,
+        now=lambda: now,
+    )
+    await app.state.face_template_repository.save(template)
+    return user
+
+
 # A stable JPEG-ish payload for multipart uploads in the spec 001 contract tests
 # (non-onboarding stub endpoints that do not decode the image).
 JPEG_BYTES = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb"

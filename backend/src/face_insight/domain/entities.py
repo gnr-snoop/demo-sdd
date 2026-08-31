@@ -77,8 +77,22 @@ class AuthSession:
     revoked_at: Optional[datetime] = None
 
     def __post_init__(self) -> None:
-        if self.expires_at <= self.created_at:
-            raise ValueError("expires_at must be after created_at")
+        # No ordering invariant between created_at and expires_at: a persisted
+        # row whose expires_at was moved into the past out-of-band (e.g. the
+        # quickstart's `UPDATE auth_sessions SET expires_at = now() - interval
+        # '1 minute'`) must rehydrate without error. Validity is governed by
+        # is_valid(now), not by construction. The positive-lifetime guarantee
+        # for freshly created sessions is enforced in create_session below.
+        return None
+
+    def is_valid(self, now: datetime) -> bool:
+        """Return True iff this session is currently valid (FR-006).
+
+        Valid iff ``revoked_at IS NULL AND expires_at > now``. All four invalid
+        cases (expired, revoked, unknown id, absent cookie) collapse to False
+        here; the session-gating dependency maps False → ``401 unauthenticated``.
+        """
+        return self.revoked_at is None and self.expires_at > now
 
 
 @dataclass(frozen=True)
@@ -147,6 +161,28 @@ def create_auth_session(
         user_id=user_id,
         created_at=created,
         expires_at=expires,
+    )
+
+
+def create_session(
+    user_id: uuid.UUID,
+    now: datetime,
+    lifetime: timedelta,
+    session_id: Optional[uuid.UUID] = None,
+) -> AuthSession:
+    """Factory for an AuthSession from an explicit ``now`` + ``lifetime`` (spec 003, R-2).
+
+    Used by the ``SessionManager.create`` port implementation: the manager
+    injects ``now`` (for deterministic tests) and the configured ``lifetime``
+    (``SESSION_LIFETIME_SECONDS``). The session starts un-revoked.
+    """
+    if lifetime <= timedelta(0):
+        raise ValueError("lifetime must be positive")
+    return AuthSession(
+        id=session_id or uuid.uuid4(),
+        user_id=user_id,
+        created_at=now,
+        expires_at=now + lifetime,
     )
 
 

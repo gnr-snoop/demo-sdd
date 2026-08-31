@@ -22,3 +22,12 @@ MOOD_MODEL_VERSION = "mock-mood-v0"
 # Embedding dimension.
 EMBEDDING_DIM = 128
 EMBEDDING_FILL = 0.1
+
+# --- Spec 003 login fixture control (T017) ---------------------------------
+# Byte markers embedded in the raw request image control the mock embedder's
+# output for login rejection tests (R-6). The ScriptableMockEmbedder substring-
+# searches the raw bytes for these markers.
+NON_MATCH_MARKER = b"NONMATCH"   # embedding orthogonal to the stored template → similarity < threshold
+MATCH_MARKER = b"MATCHFACE"      # embedding identical to the stored template → similarity = 1.0
+DIM_MISMATCH_MARKER = b"DIMMISMATCH"  # embedding of a different dimension → ComparisonError
+EMBED_FAIL_MARKER = b"EMBEDFAIL"      # embedder raises → LoginInternalError (500)

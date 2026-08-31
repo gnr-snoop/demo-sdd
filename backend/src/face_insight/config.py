@@ -38,8 +38,12 @@ class Settings(BaseSettings):
     image_format: str = "JPEG"
     image_max_long_edge: int = 640
 
-    # --- Session ------------------------------------------------------------
+    # --- Session (spec 003, R-2/R-3) ----------------------------------------
     session_ttl_seconds: int = 3600
+    session_lifetime_seconds: int = 1800
+    session_cookie_name: str = "fid_session"
+    session_cookie_secure: bool = False
+    session_signing_key: str = "demo-signing-key-change-me"
 
 
 def get_settings() -> Settings:

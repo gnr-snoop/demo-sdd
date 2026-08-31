@@ -1,21 +1,21 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
 /**
- * Placeholder route-protection guard (FR-004). Redirects unauthenticated
- * visitors to /login. Real session/cookie enforcement is deferred to spec 003.
+ * Real route-protection guard (T042, FR-004/FR-015, AC-006).
+ * Redirects unauthenticated visitors to /login. Renders <Outlet/> when
+ * authenticated. Shows nothing while the session is bootstrapping.
  */
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated } = useSession();
-  if (!isAuthenticated) {
+const ProtectedRoute: React.FC = () => {
+  const { authenticated, loading } = useSession();
+  if (loading) {
+    return null; // wait for GET /api/auth/me to resolve
+  }
+  if (!authenticated) {
     return <Navigate to="/login" replace />;
   }
-  return <>{children}</>;
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

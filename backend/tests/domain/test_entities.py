@@ -6,7 +6,7 @@ Entity construction, UUID v4 ids, enum validation, injected ``now``.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -21,6 +21,7 @@ from face_insight.domain.entities import (
     create_analysis_request,
     create_auth_session,
     create_face_template,
+    create_session,
     create_user,
 )
 
@@ -82,13 +83,35 @@ def test_create_auth_session_expires_after_created():
 
 def test_auth_session_rejects_non_positive_ttl():
     user = create_user("demo@example.com", now=fixed_now)
+    # The positive-lifetime guard lives in the create_session factory (spec 003):
+    # a non-positive lifetime is rejected at creation time.
     with pytest.raises(ValueError):
-        AuthSession(
-            id=uuid.uuid4(),
-            user_id=user.id,
-            created_at=fixed_now(),
-            expires_at=fixed_now(),
-        )
+        create_session(user.id, now=fixed_now(), lifetime=timedelta(0))
+    with pytest.raises(ValueError):
+        create_session(user.id, now=fixed_now(), lifetime=timedelta(seconds=-1))
+
+
+def test_auth_session_allows_rehydration_with_past_expires_at():
+    """A persisted row whose expires_at was moved into the past out-of-band
+    (e.g. the quickstart's manual expiry UPDATE) must rehydrate without error;
+    validity is governed by is_valid(now), not by construction (spec 003)."""
+    user = create_user("demo@example.com", now=fixed_now)
+    created = fixed_now()
+    session = AuthSession(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        created_at=created,
+        expires_at=created - timedelta(minutes=1),  # expired out-of-band
+    )
+    assert session.is_valid(created) is False  # now after expires_at → invalid
+    # Equal timestamps (the original non-positive-ttl shape) also rehydrate.
+    equal = AuthSession(
+        id=uuid.uuid4(),
+        user_id=user.id,
+        created_at=created,
+        expires_at=created,
+    )
+    assert equal.is_valid(created) is False
 
 
 def test_analysis_request_enum_validation():

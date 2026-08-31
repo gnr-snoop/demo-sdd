@@ -198,13 +198,21 @@ async def db_session_factory(require_db):
     settings = get_settings()
     engine = create_async_engine(settings.database_url, pool_pre_ping=True)
 
-    # Apply migrations.
+    # Apply migrations. Run in an isolated thread: alembic/env.py calls
+    # asyncio.run() at import time, which is forbidden inside the running
+    # pytest-asyncio event loop.
+    import threading
     from alembic import command
     from alembic.config import Config
 
-    cfg = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", settings.database_url)
-    command.upgrade(cfg, "head")
+    def _run_upgrade() -> None:
+        cfg = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+        cfg.set_main_option("sqlalchemy.url", settings.database_url)
+        command.upgrade(cfg, "head")
+
+    t = threading.Thread(target=_run_upgrade)
+    t.start()
+    t.join()
 
     # Truncate tables for a clean slate.
     async with engine.begin() as conn:

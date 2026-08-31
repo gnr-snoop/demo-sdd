@@ -7,7 +7,7 @@ Every mock returns hardcoded constant outputs — no RNG, no seed, no clock
 from .age_estimator import MockAgeEstimator
 from .constants import FIXED_USER_ID
 from .detector import MockDetector, ScriptableMockDetector
-from .embedder import MockEmbedder
+from .embedder import MockEmbedder, ScriptableMockEmbedder
 from .face_template_repository import MockFaceTemplateRepository
 from .image_storage import MockImageStorage
 from .mood_estimator import MockMoodEstimator
@@ -19,6 +19,7 @@ __all__ = [
     "MockDetector",
     "ScriptableMockDetector",
     "MockEmbedder",
+    "ScriptableMockEmbedder",
     "MockFaceTemplateRepository",
     "MockImageStorage",
     "MockMoodEstimator",
