@@ -12,9 +12,11 @@ import uuid
 from typing import Optional
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ...domain.entities import FaceTemplate, User, UserStatus
+from ...domain.onboarding import IdentifierTaken
 from .models import AnalysisRequestORM, AuthSessionORM, FaceTemplateORM, UserORM
 
 
@@ -127,3 +129,41 @@ class SqlAlchemyFaceTemplateRepository:
             if orm is not None:
                 await session.delete(orm)
                 await session.commit()
+
+
+class SqlAlchemyUnitOfWork:
+    """Atomic unit-of-work for User + FaceTemplate persistence (T010, R-5).
+
+    Wraps both inserts in a single async SQLAlchemy session/transaction. On
+    ``IntegrityError`` (e.g. duplicate normalized identifier) the transaction
+    rolls back and :class:`IdentifierTaken` is raised so the route handler can
+    map it to ``409 identifier_taken``.
+    """
+
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+        self._session_factory = session_factory
+
+    async def save_user_with_template(self, user: User, template: FaceTemplate) -> None:
+        async with self._session_factory() as session:
+            try:
+                user_orm = UserORM(
+                    id=user.id,
+                    identifier=user.identifier,
+                    status=user.status.value,
+                    created_at=user.created_at,
+                    updated_at=user.updated_at,
+                )
+                template_orm = FaceTemplateORM(
+                    id=template.id,
+                    user_id=template.user_id,
+                    embedding=template.embedding,
+                    model_version=template.model_version,
+                    created_at=template.created_at,
+                    updated_at=template.updated_at,
+                )
+                session.add(user_orm)
+                session.add(template_orm)
+                await session.commit()
+            except IntegrityError as exc:
+                await session.rollback()
+                raise IdentifierTaken(user.identifier) from exc

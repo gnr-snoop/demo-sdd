@@ -63,6 +63,16 @@ class ErrorDetail(BaseModel):
     detail: str
 
 
+# Spec 002 error response shape: {"error": {"code": "...", "message": "..."}} (R-7).
+class ErrorBody(BaseModel):
+    code: str
+    message: str
+
+
+class ErrorResponse(BaseModel):
+    error: ErrorBody
+
+
 # Fixed mock constants (SC-005 determinism). Match contracts/*.md exactly.
 FIXED_USER_ID = "00000000-0000-4000-8000-000000000001"
 FIXED_EXPIRES_AT = "2026-09-01T00:00:00Z"

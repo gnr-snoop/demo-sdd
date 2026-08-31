@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
+
 from face_insight.adapters.mock import (
     MockAgeEstimator,
     MockDetector,
@@ -42,7 +44,7 @@ def test_mock_embedder_deterministic():
     r2 = e.embed(IMAGE)
     assert len(r1.vector) == 128
     assert all(v == 0.1 for v in r1.vector)
-    assert r1.model_version == "mock-embed-v0"
+    assert r1.model_version == "mock-embedder-v1"
     assert r1 == r2
 
 
@@ -80,29 +82,31 @@ def test_mock_session_manager_deterministic():
 
 
 # --- UserRepository --------------------------------------------------------
-def test_mock_user_repository_fixed_id():
+@pytest.mark.asyncio
+async def test_mock_user_repository_fixed_id():
     repo = MockUserRepository()
-    user = repo.seed_fixed_user()
+    user = await repo.seed_fixed_user()
     assert user.id == FIXED_USER_ID
-    assert repo.get(FIXED_USER_ID) is not None
-    assert repo.get_by_identifier("demo@example.com") is not None
-    repo.delete(FIXED_USER_ID)
-    assert repo.get(FIXED_USER_ID) is None
+    assert await repo.get(FIXED_USER_ID) is not None
+    assert await repo.get_by_identifier("demo@example.com") is not None
+    await repo.delete(FIXED_USER_ID)
+    assert await repo.get(FIXED_USER_ID) is None
 
 
 # --- FaceTemplateRepository ------------------------------------------------
-def test_mock_face_template_repository_one_per_user():
+@pytest.mark.asyncio
+async def test_mock_face_template_repository_one_per_user():
     from face_insight.domain.entities import create_face_template
 
     repo = MockFaceTemplateRepository()
     from datetime import datetime, timezone
 
     now = datetime(2026, 8, 31, 12, 0, 0, tzinfo=timezone.utc)
-    tpl = create_face_template(FIXED_USER_ID, [0.1] * 128, "mock-embed-v0", now=lambda: now)
-    repo.save(tpl)
-    assert repo.get_by_user(FIXED_USER_ID) is not None
-    repo.delete_by_user(FIXED_USER_ID)
-    assert repo.get_by_user(FIXED_USER_ID) is None
+    tpl = create_face_template(FIXED_USER_ID, [0.1] * 128, "mock-embedder-v1", now=lambda: now)
+    await repo.save(tpl)
+    assert await repo.get_by_user(FIXED_USER_ID) is not None
+    await repo.delete_by_user(FIXED_USER_ID)
+    assert await repo.get_by_user(FIXED_USER_ID) is None
 
 
 # --- ImageStorage ----------------------------------------------------------

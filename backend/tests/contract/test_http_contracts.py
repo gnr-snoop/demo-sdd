@@ -1,8 +1,9 @@
-"""HTTP contract tests for all 7 endpoints (T061, FR-016).
+"""HTTP contract tests for all 7 endpoints (T061/T011/T016/T021/T032/T038, FR-016).
 
 Asserts request/response shapes and status codes per
-``specs/001-skeleton-contracts-mocks/contracts/*.md``. Includes the
-contract-violation detection test (T064, SC-009).
+``specs/002-onboarding-flow/contracts/onboarding.md`` (real onboarding logic) and
+the spec 001 stub contracts for the other 6 endpoints. Includes the
+contract-violation regression test (T038, SC-009).
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ AGE_DISCLAIMER = "La edad es una estimación visual y puede contener un margen d
 
 
 def _multipart(identifier=None, consent=None, image=True):
+    """Spec 001 helper for non-onboarding stub endpoints (uses JPEG_BYTES)."""
     data = {}
     files = {}
     if identifier is not None:
@@ -37,40 +39,193 @@ def _multipart(identifier=None, consent=None, image=True):
     return data, files
 
 
-# --- POST /api/onboarding --------------------------------------------------
+def _onboard(client, identifier="demo@example.com", consent="true", image_name="one_face.jpg", image_bytes=None):
+    """POST /api/onboarding with a fixture image (default one_face.jpg)."""
+    from tests.conftest import fixture_bytes
+
+    payload = image_bytes if image_bytes is not None else fixture_bytes(image_name)
+    data = {"identifier": identifier, "consentAccepted": consent}
+    files = {"image": (image_name, payload, "image/jpeg")}
+    return client.post("/api/onboarding", data=data, files=files)
+
+
+# ==========================================================================
+# POST /api/onboarding — real logic (spec 002)
+# ==========================================================================
+
+# --- T011: Happy path (201) ------------------------------------------------
 @pytest.mark.asyncio
 async def test_onboarding_success(client):
-    data, files = _multipart("demo@example.com", consent=True)
-    resp = await client.post("/api/onboarding", data=data, files=files)
+    resp = await _onboard(client, identifier="Demo@Example.com ")
     assert resp.status_code == 201
     body = resp.json()
+    assert set(body.keys()) == {"userId", "identifier", "status"}
     assert UUID_RE.match(body["userId"])
-    assert body["identifier"] == "demo@example.com"
+    assert body["identifier"] == "demo@example.com"  # normalized (trim + lowercase)
     assert body["status"] == "enrolled"
+
+
+# --- T021: identifier_invalid / identifier_taken / consent_required --------
+@pytest.mark.asyncio
+async def test_onboarding_empty_identifier_422(client):
+    resp = await _onboard(client, identifier="   ")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "identifier_invalid"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_malformed_identifier_422(client):
+    resp = await _onboard(client, identifier="not valid!")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "identifier_invalid"
 
 
 @pytest.mark.asyncio
 async def test_onboarding_missing_identifier_422(client):
-    data, files = _multipart(consent=True)
-    resp = await client.post("/api/onboarding", data=data, files=files)
+    # Omit identifier entirely.
+    from tests.conftest import fixture_bytes
+
+    files = {"image": ("one.jpg", fixture_bytes("one_face.jpg"), "image/jpeg")}
+    resp = await client.post("/api/onboarding", data={"consentAccepted": "true"}, files=files)
     assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "identifier_invalid"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_duplicate_identifier_409(client):
+    first = await _onboard(client, identifier="demo@example.com")
+    assert first.status_code == 201
+    second = await _onboard(client, identifier="DEMO@Example.COM")
+    assert second.status_code == 409
+    assert second.json()["error"]["code"] == "identifier_taken"
 
 
 @pytest.mark.asyncio
 async def test_onboarding_consent_false_422(client):
-    data, files = _multipart("demo@example.com", consent=False)
-    resp = await client.post("/api/onboarding", data=data, files=files)
+    resp = await _onboard(client, consent="false")
     assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "consent_required"
 
 
 @pytest.mark.asyncio
-async def test_onboarding_missing_image_422(client):
-    data, files = _multipart("demo@example.com", consent=True, image=False)
-    resp = await client.post("/api/onboarding", data=data, files=files)
+async def test_onboarding_consent_non_boolean_string_422(client):
+    # Non-boolean truthy string ("yes") must be rejected (FR-003).
+    resp = await _onboard(client, consent="yes")
     assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "consent_required"
 
 
-# --- POST /api/auth/face-login --------------------------------------------
+@pytest.mark.asyncio
+async def test_onboarding_consent_missing_422(client):
+    from tests.conftest import fixture_bytes
+
+    files = {"image": ("one.jpg", fixture_bytes("one_face.jpg"), "image/jpeg")}
+    resp = await client.post("/api/onboarding", data={"identifier": "demo@example.com"}, files=files)
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "consent_required"
+
+
+# --- T032: invalid_image (missing / oversized / undecodable) ---------------
+@pytest.mark.asyncio
+async def test_onboarding_missing_image_422(client):
+    resp = await client.post(
+        "/api/onboarding", data={"identifier": "demo@example.com", "consentAccepted": "true"}
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "invalid_image"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_oversized_image_422(client):
+    resp = await _onboard(client, identifier="big@example.com", image_name="oversized.jpg")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "invalid_image"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_undecodable_image_422(client):
+    resp = await _onboard(client, identifier="ni@example.com", image_name="not_an_image.txt")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "invalid_image"
+
+
+# --- T016: no_face / multiple_faces / insufficient_quality (scriptable) -----
+@pytest.mark.asyncio
+async def test_onboarding_no_face_422(scriptable_client):
+    resp = await _onboard(scriptable_client, identifier="nf@example.com", image_name="no_face.jpg")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "no_face"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_multiple_faces_422(scriptable_client):
+    resp = await _onboard(scriptable_client, identifier="mf@example.com", image_name="multi_face.jpg")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "multiple_faces"
+
+
+@pytest.mark.asyncio
+async def test_onboarding_insufficient_quality_422(scriptable_client):
+    resp = await _onboard(scriptable_client, identifier="lq@example.com", image_name="low_quality.jpg")
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "insufficient_quality"
+
+
+# --- T038: Contract-violation regression (SC-009) --------------------------
+@pytest.mark.asyncio
+async def test_contract_success_shape_enforced(client):
+    """A deliberate change to the success shape (e.g. extra/missing fields or
+    status='active') causes this test to fail (SC-009)."""
+    resp = await _onboard(client, identifier="demo@example.com")
+    body = resp.json()
+    assert set(body.keys()) == {"userId", "identifier", "status"}, body
+    assert body["status"] == "enrolled"
+    assert body["status"] != "active"
+
+
+@pytest.mark.parametrize(
+    "code,status",
+    [
+        ("identifier_invalid", 422),
+        ("identifier_taken", 409),
+        ("consent_required", 422),
+        ("invalid_image", 422),
+        ("no_face", 422),
+        ("multiple_faces", 422),
+        ("insufficient_quality", 422),
+    ],
+)
+@pytest.mark.asyncio
+async def test_contract_error_shape_enforced(client, scriptable_client, code, status):
+    """Every error response uses {"error": {"code", "message"}} (SC-009)."""
+    from tests.conftest import fixture_bytes
+
+    if code == "identifier_invalid":
+        resp = await _onboard(client, identifier="bad!")
+    elif code == "identifier_taken":
+        await _onboard(client, identifier="dup@example.com")
+        resp = await _onboard(client, identifier="DUP@example.com")
+    elif code == "consent_required":
+        resp = await _onboard(client, consent="false")
+    elif code == "invalid_image":
+        resp = await _onboard(client, image_name="not_an_image.txt")
+    elif code == "no_face":
+        resp = await _onboard(scriptable_client, image_name="no_face.jpg")
+    elif code == "multiple_faces":
+        resp = await _onboard(scriptable_client, image_name="multi_face.jpg")
+    elif code == "insufficient_quality":
+        resp = await _onboard(scriptable_client, image_name="low_quality.jpg")
+    assert resp.status_code == status
+    body = resp.json()
+    assert set(body.keys()) == {"error"}, body
+    assert set(body["error"].keys()) == {"code", "message"}
+    assert body["error"]["code"] == code
+    assert isinstance(body["error"]["message"], str) and body["error"]["message"]
+
+
+# ==========================================================================
+# POST /api/auth/face-login (spec 001 stub — unchanged)
+# ==========================================================================
 @pytest.mark.asyncio
 async def test_face_login_success(client):
     data, files = _multipart("demo@example.com")
@@ -203,22 +358,3 @@ async def test_delete_face_data_success(client):
 async def test_delete_face_data_malformed_uuid_422(client):
     resp = await client.delete("/api/users/not-a-uuid/face-data", headers=SESSION_HEADER)
     assert resp.status_code == 422
-
-
-# --- Contract-violation detection (T064, SC-009) --------------------------
-@pytest.mark.asyncio
-async def test_contract_violation_is_detected(client):
-    """If onboarding returned status='active' instead of 'enrolled', the
-    success assertion would fail. This test documents that the contract suite
-    catches such a violation by asserting the correct value is enforced."""
-    data, files = _multipart("demo@example.com", consent=True)
-    resp = await client.post("/api/onboarding", data=data, files=files)
-    body = resp.json()
-    # The contract requires status == "enrolled". A violating implementation
-    # returning "active" would make this assertion fail (SC-009).
-    assert body["status"] == "enrolled", (
-        "Contract violation detected: onboarding status must be 'enrolled', "
-        f"got {body['status']!r}"
-    )
-    # Sanity: a wrong value is not silently accepted.
-    assert body["status"] != "active"

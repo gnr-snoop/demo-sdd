@@ -14,7 +14,7 @@ FIXED_TEMPLATE_ID = uuid.UUID("00000000-0000-4000-8000-000000000003")
 FIXED_NOW = datetime(2026, 8, 31, 12, 0, 0, tzinfo=timezone.utc)
 
 # Model versions (FR-012).
-EMBED_MODEL_VERSION = "mock-embed-v0"
+EMBED_MODEL_VERSION = "mock-embedder-v1"
 DETECTOR_MODEL_VERSION = "mock-yolo-v0"
 AGE_MODEL_VERSION = "mock-age-v0"
 MOOD_MODEL_VERSION = "mock-mood-v0"

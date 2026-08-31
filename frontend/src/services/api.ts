@@ -46,6 +46,21 @@ export interface DeleteFaceDataResponse {
   status: "deleted";
 }
 
+// Spec 002 error shape: {"error": {"code": "...", "message": "..."}}.
+export interface ErrorBody {
+  code: string;
+  message: string;
+}
+
+export class OnboardingApiError extends Error {
+  readonly code: string;
+  constructor(code: string, message: string) {
+    super(message);
+    this.name = "OnboardingApiError";
+    this.code = code;
+  }
+}
+
 function headersWithSession(sessionId?: string): HeadersInit {
   if (!sessionId) return {};
   return { "X-Session-Id": sessionId };
@@ -63,6 +78,20 @@ export const api = {
   async onboarding(identifier: string, consentAccepted: boolean, image: Blob): Promise<OnboardingResponse> {
     const body = await multipart(identifier, image, consentAccepted);
     const resp = await fetch(`${API_BASE_URL}/api/onboarding`, { method: "POST", body });
+    if (!resp.ok) {
+      let code = "internal_error";
+      let message = "Ocurrió un error inesperado. Inténtalo de nuevo.";
+      try {
+        const errBody = (await resp.json()) as { error?: ErrorBody };
+        if (errBody?.error?.code && errBody?.error?.message) {
+          code = errBody.error.code;
+          message = errBody.error.message;
+        }
+      } catch {
+        // Non-JSON error body — keep the generic internal_error.
+      }
+      throw new OnboardingApiError(code, message);
+    }
     return resp.json();
   },
 

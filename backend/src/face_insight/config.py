@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     # --- Verification (OQ-6) ------------------------------------------------
     verification_threshold: float = 0.5
 
+    # --- Onboarding quality (spec 002, FR-004) -----------------------------
+    quality_threshold: float = 0.5
+
     # --- Model versions (FR-012) -------------------------------------------
-    embedding_model_version: str = "mock-embed-v0"
+    embedding_model_version: str = "mock-embedder-v1"
     detector_model_version: str = "mock-yolo-v0"
     age_model_version: str = "mock-age-v0"
     mood_model_version: str = "mock-mood-v0"

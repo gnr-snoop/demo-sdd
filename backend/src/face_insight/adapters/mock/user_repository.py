@@ -20,25 +20,25 @@ class MockUserRepository:
         self._now = now or FIXED_NOW
         self._users: dict[uuid.UUID, User] = {}
 
-    def get(self, user_id: object) -> Optional[User]:
+    async def get(self, user_id: object) -> Optional[User]:
         uid = uuid.UUID(str(user_id)) if not isinstance(user_id, uuid.UUID) else user_id
         return self._users.get(uid)
 
-    def get_by_identifier(self, identifier: str) -> Optional[User]:
+    async def get_by_identifier(self, identifier: str) -> Optional[User]:
         for user in self._users.values():
             if user.identifier == identifier:
                 return user
         return None
 
-    def save(self, user: User) -> User:
+    async def save(self, user: User) -> User:
         self._users[user.id] = user
         return user
 
-    def delete(self, user_id: object) -> None:
+    async def delete(self, user_id: object) -> None:
         uid = uuid.UUID(str(user_id)) if not isinstance(user_id, uuid.UUID) else user_id
         self._users.pop(uid, None)
 
-    def seed_fixed_user(self, identifier: str = "demo@example.com") -> User:
+    async def seed_fixed_user(self, identifier: str = "demo@example.com") -> User:
         """Seed the deterministic fixed user (test helper)."""
         user = create_user(
             identifier=identifier,
@@ -46,4 +46,4 @@ class MockUserRepository:
             status=UserStatus.enrolled,
             user_id=FIXED_USER_ID,
         )
-        return self.save(user)
+        return await self.save(user)
