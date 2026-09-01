@@ -1,0 +1,92 @@
+/* ============================================================================
+   tokens.css — Design tokens de la Guía de Estilos Snoop × Claude (§6)
+   Sistema de Diseño Híbrido · Snoop Consulting
+   ========================================================================== */
+
+:root {
+  /* === PRIMARIO — ROJO SNOOP === */
+  --color-primary: #d9261c;
+  --color-primary-light: #ff6347;
+  --color-primary-dark: #a31810;
+  --color-primary-darker: #820e0a;
+  --color-primary-darkest: #610906;
+
+  /* === SUPERFICIES — CREAM CLAUDE === */
+  --color-canvas: #faf9f5; /* fondo de página — reemplaza #FFFFFF */
+  --color-surface-soft: #f5f0e8; /* bandas sutiles */
+  --color-surface-card: #efe9de; /* cards y formularios */
+  --color-surface-card-strong: #e8e0d2; /* tabs activos */
+  --color-surface-dark: #181715; /* footer y dark cards */
+  --color-surface-dark-elevated: #252320;
+  --color-surface-dark-soft: #1f1e1b;
+
+  /* === HAIRLINES SOBRE CREAM === */
+  --color-hairline: #e6dfd8;
+  --color-hairline-soft: #ebe6df;
+  --color-hairline-card: #bdbdbd;
+
+  /* === TEXTO === */
+  --color-body: #212121;
+  --color-body-medium: #424242;
+  --color-body-soft: #616161;
+  --color-on-dark: #faf9f5;
+  --color-on-dark-soft: #a09d96;
+  --color-on-primary: #ffffff;
+
+  /* === SECUNDARIO — BLUE-GRAY SNOOP === */
+  --color-secondary: #546e7a;
+  --color-secondary-light: #cfd8dc;
+  --color-secondary-lighter: #eceff1;
+  --color-gray-light: #bdbdbd;
+  --color-black: #000000;
+
+  /* === SEMÁNTICOS === */
+  --color-success: #5db872;
+  --color-warning: #d4a017;
+  --color-error: #c64545;
+
+  /* === TIPOGRAFÍA === */
+  --font-display: "Fraunces", Georgia, serif; /* H1–H4 */
+  --font-body: "Geist", system-ui, sans-serif; /* body, nav, UI */
+  --font-size-sm: 0.75rem;
+  --font-size-md: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-xxl: 2.5rem;
+
+  /* === ESPACIADO === */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 0.75rem;
+  --spacing-base: 1rem;
+  --spacing-lg: 1.25rem;
+  --spacing-xl: 1.5rem;
+  --spacing-xxl: 3rem;
+  --spacing-section: 6rem; /* aire editorial entre bandas */
+  --gutter: 1.5rem;
+
+  /* === BORDER RADIUS === */
+  --radius-sm: 0.25rem;
+  --radius: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-xxl: 2rem;
+  --radius-card: 2rem 2rem 0.5rem 2rem; /* patrón asimétrico signature de cards (§1.4/§6 — token aditivo, Clarification 2026-09-01) */
+
+  /* === Z-INDEX === */
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+
+  /* === ALTURAS === */
+  --header-height: 5.5rem;
+
+  /* === TRANSICIONES === */
+  --transition-color: color 0.4s ease, background-color 0.4s ease, border-color 0.4s ease;
+  --transition-layout: max-height 0.7s ease-in-out, opacity 0.7s ease-in-out;
+  --transition-reveal: opacity 0.7s ease-in-out, transform 0.7s ease-in-out;
+
+  /* === GRADIENTES === */
+  --gradient-primary: linear-gradient(180deg, #d9261c 0%, #a31810 100%);
+  --gradient-text: linear-gradient(90deg, #212121, #546e7a);
+}

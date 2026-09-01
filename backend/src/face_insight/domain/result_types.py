@@ -14,10 +14,19 @@ class BoundingBox:
 
 
 @dataclass(frozen=True)
+class Landmark:
+    x: int
+    y: int
+
+
+@dataclass(frozen=True)
 class DetectionResult:
     face_count: int
     boxes: list[BoundingBox]
     score: float
+    # YuNet 5-point landmarks per face (right_eye, left_eye, nose, right_mouth, left_mouth).
+    # None when detector does not provide landmarks (e.g. mock). Parallel to boxes.
+    landmarks: list[list[Landmark]] | None = None
 
 
 @dataclass(frozen=True)
