@@ -17,6 +17,12 @@ export interface CameraCaptureProps {
   onPermissionDenied: () => void;
   /** Disable the capture button (e.g. during processing). */
   disabled?: boolean;
+  /** Optional capture button label (default "Capturar"). */
+  captureButtonLabel?: string;
+  /** Optional capture button aria-label (default "Capturar rostro"). */
+  captureButtonAriaLabel?: string;
+  /** Optional test id for the capture button (default "capture-button"). */
+  captureButtonTestId?: string;
 }
 
 const CameraCapture: React.FC<CameraCaptureProps> = ({
@@ -25,6 +31,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
   onPermissionGranted,
   onPermissionDenied,
   disabled = false,
+  captureButtonLabel = "Capturar",
+  captureButtonAriaLabel = "Capturar rostro",
+  captureButtonTestId = "capture-button",
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -109,10 +118,10 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
           type="button"
           onClick={handleCapture}
           disabled={disabled}
-          aria-label="Capturar rostro"
-          data-testid="capture-button"
+          aria-label={captureButtonAriaLabel}
+          data-testid={captureButtonTestId}
         >
-          Capturar
+          {captureButtonLabel}
         </button>
       )}
     </div>

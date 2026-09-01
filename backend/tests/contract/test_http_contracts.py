@@ -249,7 +249,7 @@ async def test_logout_without_cookie_200(client):
     assert resp.json() == {"status": "ok"}
 
 
-# --- POST /api/analysis/mood (spec 003 — 401 without a valid cookie) -------
+# --- POST /api/analysis/mood (spec 004 — real logic) -----------------------
 @pytest.mark.asyncio
 async def test_analysis_mood_without_session_401(client):
     """T025: protected endpoint rejects without a valid session (SC-005)."""
@@ -257,6 +257,30 @@ async def test_analysis_mood_without_session_401(client):
     resp = await client.post("/api/analysis/mood", files=files)
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "unauthenticated"
+
+
+@pytest.mark.asyncio
+async def test_analysis_mood_happy_path_real_logic(client, app):
+    """Spec 004 (T015): mood endpoint exercises real orchestration (supersedes
+    the spec 001 stub). Seed + login → POST /api/analysis/mood → 200 with the
+    real {label, confidence, disclaimer} shape; confidence widened to float|null."""
+    from tests.conftest import fixture_bytes, seed_user_template
+
+    await seed_user_template(app)
+    # Login to obtain a session cookie on `client`.
+    files = {"image": ("one_face.jpg", fixture_bytes("one_face.jpg"), "image/jpeg")}
+    login = await client.post(
+        "/api/auth/face-login", data={"identifier": "demo@example.com"}, files=files
+    )
+    assert login.status_code == 200, login.text
+    # Mood analysis — real orchestration via MockDetector + MockMoodEstimator.
+    resp = await client.post("/api/analysis/mood", files=files)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert set(body.keys()) == {"label", "confidence", "disclaimer"}, body
+    assert body["label"] == "neutral"  # MockMoodEstimator default
+    assert body["confidence"] == 0.74
+    assert body["disclaimer"] == MOOD_DISCLAIMER
 
 
 # --- POST /api/analysis/age (spec 003 — 401 without a valid cookie) --------

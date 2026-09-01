@@ -39,6 +39,14 @@ SPEC_003_DOMAIN_MODULES = {
     "entities.py",
 }
 
+# Spec 004 (T008): new domain module that MUST exist and be pure. ``mood.py``
+# holds the MoodService use-case + normalize_mood_label and must import only
+# ports/result types/exceptions/stdlib (FR-015/SC-009). The parametrize purity
+# sweep covers it automatically once it exists; this set asserts existence.
+SPEC_004_DOMAIN_MODULES = {
+    "mood.py",
+}
+
 FORBIDDEN_PREFIXES = (
     "face_insight.adapters",
     "face_insight.api",
@@ -91,6 +99,13 @@ def test_domain_directory_exists():
 @pytest.mark.parametrize("module", sorted(SPEC_003_DOMAIN_MODULES))
 def test_spec_003_domain_module_exists(module: str):
     """T012: the new spec 003 domain modules exist and are covered by the purity gate."""
+    assert (DOMAIN_DIR / module).is_file(), f"missing domain module: {module}"
+
+
+@pytest.mark.parametrize("module", sorted(SPEC_004_DOMAIN_MODULES))
+def test_spec_004_domain_module_exists(module: str):
+    """T008: the new spec 004 domain module (mood.py) exists and is covered by
+    the purity gate (FR-015/SC-009 — port-only deps)."""
     assert (DOMAIN_DIR / module).is_file(), f"missing domain module: {module}"
 
 

@@ -78,3 +78,13 @@ def get_session_cookie_service(request: Request) -> object:
 
 def get_session_manager(request: Request) -> object:
     return request.app.state.session_manager
+
+
+def get_mood_service(request: Request) -> object:
+    """Resolve the wired ``MoodService`` from ``app.state`` (spec 004, T007/R-6).
+
+    The service is built in ``main.wire_mock_adapters`` / ``create_auth_app``
+    from the mock detector + mood estimator ports and stored on
+    ``app.state.mood_service``.
+    """
+    return request.app.state.mood_service

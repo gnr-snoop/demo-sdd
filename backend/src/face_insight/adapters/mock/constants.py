@@ -17,7 +17,9 @@ FIXED_NOW = datetime(2026, 8, 31, 12, 0, 0, tzinfo=timezone.utc)
 EMBED_MODEL_VERSION = "mock-embedder-v1"
 DETECTOR_MODEL_VERSION = "mock-yolo-v0"
 AGE_MODEL_VERSION = "mock-age-v0"
-MOOD_MODEL_VERSION = "mock-mood-v0"
+# Spec 004 (orchestrator pinned decision): mock mood estimator exposes
+# model_version "mock-mood-v1" (FR-017 — identifiable adapter version).
+MOOD_MODEL_VERSION = "mock-mood-v1"
 
 # Embedding dimension.
 EMBEDDING_DIM = 128
@@ -31,3 +33,13 @@ NON_MATCH_MARKER = b"NONMATCH"   # embedding orthogonal to the stored template �
 MATCH_MARKER = b"MATCHFACE"      # embedding identical to the stored template → similarity = 1.0
 DIM_MISMATCH_MARKER = b"DIMMISMATCH"  # embedding of a different dimension → ComparisonError
 EMBED_FAIL_MARKER = b"EMBEDFAIL"      # embedder raises → LoginInternalError (500)
+
+# --- Spec 004 mood fixture control (T005/R-5) -------------------------------
+# Byte markers embedded in the raw request image control the scriptable mock
+# mood estimator's output for mood rejection/variation tests (R-5). The
+# ScriptableMockMoodEstimator substring-searches the raw bytes for these markers.
+MOOD_FELIZ_MARKER = b"FELIZ"              # → label "feliz", confidence 0.8
+MOOD_TRISTE_MARKER = b"TRIST"             # → label "triste", confidence 0.7
+MOOD_NO_CONCLUSIVE_MARKER = b"NOCONCLUSIVE"  # → label "no concluyente", confidence 0.3
+MOOD_FAIL_MARKER = b"MOODFAIL"            # estimator raises → MoodInternalError (500)
+MOOD_OUT_OF_SET_MARKER = b"OOSET"         # → out-of-set label "angry" → normalize to "no concluyente"

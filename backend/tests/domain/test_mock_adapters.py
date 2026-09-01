@@ -66,7 +66,7 @@ def test_mock_mood_estimator_deterministic():
     r2 = m.estimate_mood(IMAGE)
     assert r1.label == "neutral"
     assert r1.confidence == 0.74
-    assert r1.model_version == "mock-mood-v0"
+    assert r1.model_version == "mock-mood-v1"
     assert r1 == r2
 
 

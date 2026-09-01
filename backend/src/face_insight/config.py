@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     embedding_model_version: str = "mock-embedder-v1"
     detector_model_version: str = "mock-yolo-v0"
     age_model_version: str = "mock-age-v0"
-    mood_model_version: str = "mock-mood-v0"
+    # Spec 004: mock mood estimator version (orchestrator pinned decision).
+    mood_model_version: str = "mock-mood-v1"
 
     # --- Image limits (OQ-8) ------------------------------------------------
     image_max_bytes: int = 2_000_000

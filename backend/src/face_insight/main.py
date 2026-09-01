@@ -89,6 +89,7 @@ def wire_mock_adapters(app: FastAPI) -> None:
     from .adapters.http.session_cookie import SessionCookieService  # noqa: PLC0415
     from .domain.comparison import CosineComparison  # noqa: PLC0415
     from .domain.login import LoginService  # noqa: PLC0415
+    from .domain.mood import MoodService  # noqa: PLC0415
     from .domain.onboarding import OnboardingService  # noqa: PLC0415
 
     settings = get_settings()
@@ -126,6 +127,13 @@ def wire_mock_adapters(app: FastAPI) -> None:
         session_manager=app.state.session_manager,
         quality_threshold=settings.quality_threshold,
         verification_threshold=settings.verification_threshold,
+    )
+
+    # Spec 004 mood wiring (T014): MoodService from mock ports.
+    app.state.mood_service = MoodService(
+        detector=app.state.detector,
+        mood_estimator=app.state.mood_estimator,
+        quality_threshold=settings.quality_threshold,
     )
 
 
@@ -217,6 +225,15 @@ def create_onboarding_app(
         embedding_model_version=settings.embedding_model_version,
     )
     app.state.unit_of_work = unit_of_work
+
+    # Spec 004 (T014): rebuild mood_service with the overridden detector.
+    from .domain.mood import MoodService  # noqa: PLC0415
+
+    app.state.mood_service = MoodService(
+        detector=detector,
+        mood_estimator=app.state.mood_estimator,
+        quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+    )
     return app
 
 
@@ -227,6 +244,7 @@ def create_auth_app(
     image_storage: object | None = None,
     quality_threshold: float | None = None,
     verification_threshold: float | None = None,
+    mood_estimator: object | None = None,
 ) -> FastAPI:
     """Application factory wired for login/session integration tests (spec 003).
 
@@ -245,6 +263,7 @@ def create_auth_app(
     from .adapters.http.session_cookie import SessionCookieService  # noqa: PLC0415
     from .domain.comparison import CosineComparison  # noqa: PLC0415
     from .domain.login import LoginService  # noqa: PLC0415
+    from .domain.mood import MoodService  # noqa: PLC0415
     from .domain.onboarding import OnboardingService  # noqa: PLC0415
 
     settings = get_settings()
@@ -302,6 +321,16 @@ def create_auth_app(
         session_manager=session_manager,
         quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
         verification_threshold=settings.verification_threshold if verification_threshold is None else verification_threshold,
+    )
+
+    # Spec 004 mood wiring (T014): override the mood estimator if provided, then
+    # rebuild MoodService with the (overridden) detector + mood estimator.
+    if mood_estimator is not None:
+        app.state.mood_estimator = mood_estimator
+    app.state.mood_service = MoodService(
+        detector=detector,
+        mood_estimator=app.state.mood_estimator,
+        quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
     )
     return app
 

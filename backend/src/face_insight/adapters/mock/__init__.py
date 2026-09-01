@@ -10,7 +10,7 @@ from .detector import MockDetector, ScriptableMockDetector
 from .embedder import MockEmbedder, ScriptableMockEmbedder
 from .face_template_repository import MockFaceTemplateRepository
 from .image_storage import MockImageStorage
-from .mood_estimator import MockMoodEstimator
+from .mood_estimator import MockMoodEstimator, ScriptableMockMoodEstimator
 from .session_manager import MockSessionManager
 from .user_repository import MockUserRepository
 
@@ -23,6 +23,7 @@ __all__ = [
     "MockFaceTemplateRepository",
     "MockImageStorage",
     "MockMoodEstimator",
+    "ScriptableMockMoodEstimator",
     "MockSessionManager",
     "MockUserRepository",
     "FIXED_USER_ID",

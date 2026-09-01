@@ -5,7 +5,7 @@ Shapes match ``specs/001-skeleton-contracts-mocks/contracts/*.md`` exactly.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # --- Onboarding (POST /api/onboarding) -------------------------------------
@@ -52,9 +52,21 @@ class MoodRange(BaseModel):
 
 
 class MoodResponse(BaseModel):
+    # Spec 004 (T004/R-3): confidence is optional (`float | None`). When present
+    # it must lie in [0.0, 1.0] (validated below). Null/omitted is permitted per
+    # PRD §6.4 / FR-012a (the estimator may not produce a confidence).
     label: str
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float | None = None
     disclaimer: str
+
+    @field_validator("confidence")
+    @classmethod
+    def _confidence_in_unit_range(cls, v: float | None) -> float | None:
+        if v is None:
+            return v
+        if v < 0.0 or v > 1.0:
+            raise ValueError("confidence must be in [0.0, 1.0]")
+        return v
 
 
 # --- Analysis: age (POST /api/analysis/age) --------------------------------

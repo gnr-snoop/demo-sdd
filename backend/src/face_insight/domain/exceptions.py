@@ -55,6 +55,13 @@ class LoginInternalError(OnboardingInternalError):
     internal_error`` (recoverable)."""
 
 
+# --- Mood-specific exceptions (spec 004, T003/R-4) -------------------------
+class MoodInternalError(OnboardingInternalError):
+    """Unexpected failure during mood analysis (detector/mood_estimator port
+    raises, or any other unexpected error). Mapped to ``500 internal_error``
+    (recoverable — FR-007). No mood result is produced."""
+
+
 class ComparisonError(OnboardingError):
     """Comparison port failure (e.g. embedding dimension mismatch).
 
@@ -71,6 +78,7 @@ __all__ = [
     "InsufficientQuality",
     "InvalidImage",
     "LoginInternalError",
+    "MoodInternalError",
     "MultipleFaces",
     "NoFace",
     "OnboardingError",

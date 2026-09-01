@@ -29,7 +29,10 @@ class Embedding:
 @dataclass(frozen=True)
 class MoodResult:
     label: str
-    confidence: float
+    # Spec 004 (T002/R-3): widened from `float` to `float | None` to permit
+    # null/omitted confidence per PRD §6.4 (backward-compatible; the mock always
+    # supplies a value). Clamped to [0,1] by MoodService when present.
+    confidence: float | None
     model_version: str
 
 

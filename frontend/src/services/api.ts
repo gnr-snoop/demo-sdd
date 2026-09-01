@@ -30,7 +30,9 @@ export interface LogoutResponse {
 
 export interface MoodResponse {
   label: string;
-  confidence: number;
+  // Spec 004 (FR-012a): confidence is optional — null/omitted when the
+  // estimator does not produce one. Rendered as "≈NN%" when present.
+  confidence: number | null;
   disclaimer: string;
 }
 
@@ -145,7 +147,11 @@ export const api = {
     const resp = await fetch(`${API_BASE_URL}/api/analysis/mood`, {
       method: "POST",
       body,
+      credentials: "include", // send the session cookie (spec 003)
     });
+    if (!resp.ok) {
+      await parseError(resp);
+    }
     return resp.json();
   },
 
