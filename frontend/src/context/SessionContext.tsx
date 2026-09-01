@@ -14,6 +14,11 @@ export interface SessionContextValue {
   loading: boolean;
   login: (userId: string) => void;
   logout: () => Promise<void>;
+  /** Clear in-memory session state WITHOUT calling /api/auth/logout (spec 006,
+   * research R-6). Used after face-data deletion: the session is already
+   * destroyed by the deletion transaction, so calling logout would hit a
+   * deleted session. */
+  clearSession: () => void;
 }
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
@@ -81,9 +86,17 @@ export const SessionProvider: React.FC<SessionProviderProps> = ({
     setUserId(null);
   }, []);
 
+  // Spec 006 (T020, research R-6): clear session state without calling /logout.
+  // The deletion transaction already destroyed the AuthSession; calling logout
+  // would hit a deleted session. Only local state is cleared.
+  const clearSession = useCallback(() => {
+    setAuthenticated(false);
+    setUserId(null);
+  }, []);
+
   const value = useMemo<SessionContextValue>(
-    () => ({ authenticated, userId, loading, login, logout }),
-    [authenticated, userId, loading, login, logout],
+    () => ({ authenticated, userId, loading, login, logout, clearSession }),
+    [authenticated, userId, loading, login, logout, clearSession],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

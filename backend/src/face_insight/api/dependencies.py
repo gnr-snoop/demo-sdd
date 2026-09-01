@@ -19,7 +19,15 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 from ..domain.entities import AuthSession
-from ..domain.exceptions import UNAUTHENTICATED_MESSAGE
+from ..domain.exceptions import (
+    DELETION_INTERNAL_ERROR_MESSAGE,
+    FORBIDDEN_MESSAGE,
+    NOT_FOUND_MESSAGE,
+    DeletionInternalError,
+    Forbidden,
+    NotFound,
+    UNAUTHENTICATED_MESSAGE,
+)
 
 
 def _now() -> datetime:
@@ -88,3 +96,48 @@ def get_mood_service(request: Request) -> object:
     ``app.state.mood_service``.
     """
     return request.app.state.mood_service
+
+
+# --- Spec 006 deletion error handlers (T003) --------------------------------
+def register_deletion_exception_handlers(app) -> None:
+    """Register ``Forbidden``→403, ``NotFound``→404, ``DeletionInternalError``→500
+    exception handlers on ``app`` following the existing ``UnauthenticatedError``→401
+    registration pattern. Handlers emit the pinned ``{"error": {"code", "message"}}``
+    body shape (FR-008, contract delete-face-data.md).
+    """
+
+    @app.exception_handler(Forbidden)
+    async def _forbidden_handler(_request, _exc):  # noqa: ANN001
+        return JSONResponse(
+            status_code=403,
+            content={"error": {"code": "forbidden", "message": FORBIDDEN_MESSAGE}},
+        )
+
+    @app.exception_handler(NotFound)
+    async def _not_found_handler(_request, _exc):  # noqa: ANN001
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"code": "not_found", "message": NOT_FOUND_MESSAGE}},
+        )
+
+    @app.exception_handler(DeletionInternalError)
+    async def _deletion_internal_handler(_request, _exc):  # noqa: ANN001
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": {
+                    "code": "internal_error",
+                    "message": DELETION_INTERNAL_ERROR_MESSAGE,
+                }
+            },
+        )
+
+
+def get_deletion_service(request: Request) -> object:
+    """Resolve the wired ``DeletionService`` from ``app.state`` (spec 006, T010).
+
+    The service is built in ``main.wire_mock_adapters`` / ``create_auth_app``
+    from the user repository, image storage, and the injected
+    ``delete_user_face_data`` UnitOfWork callable.
+    """
+    return request.app.state.deletion_service

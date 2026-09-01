@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -167,3 +167,30 @@ class SqlAlchemyUnitOfWork:
             except IntegrityError as exc:
                 await session.rollback()
                 raise IdentifierTaken(user.identifier) from exc
+
+    async def delete_user_face_data(self, user_id: object) -> None:
+        """Atomic hard-delete of a user's face data (spec 006, T007, FR-004).
+
+        Removes ``FaceTemplate`` rows → ``AuthSession`` rows → ``User`` row
+        (dependents first, then parent) in a **single** async SQLAlchemy
+        session/transaction, then commits. On any exception the transaction
+        rolls back and the exception re-raises (→ ``DeletionInternalError`` →
+        ``500 internal_error``, no partial DB state). Research R-2.
+        """
+        uid = user_id if isinstance(user_id, uuid.UUID) else uuid.UUID(str(user_id))
+        async with self._session_factory() as session:
+            try:
+                # 1. Dependents first (FK order): FaceTemplate, then AuthSession.
+                await session.execute(
+                    delete(FaceTemplateORM).where(FaceTemplateORM.user_id == uid)
+                )
+                await session.execute(
+                    delete(AuthSessionORM).where(AuthSessionORM.user_id == uid)
+                )
+                # 2. Parent: User.
+                await session.execute(delete(UserORM).where(UserORM.id == uid))
+                # 3. Commit.
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise

@@ -12,9 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
+RUN mkdir -p src/face_insight && touch src/face_insight/__init__.py
 RUN pip install --upgrade pip && pip install .
 
 COPY . .
+RUN pip install . --no-deps
 
 EXPOSE 8000
 

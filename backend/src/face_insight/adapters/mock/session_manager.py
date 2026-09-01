@@ -48,5 +48,18 @@ class MockSessionManager:
                 revoked_at=now,
             )
 
+    async def delete_by_user(self, user_id: object) -> None:
+        """Remove ALL AuthSession rows for a user (spec 006 mock helper).
+
+        Mock-adapter convenience (NOT a port method — research R-2 explicitly
+        adds no ``SessionManager.delete_by_user`` port). Used by
+        ``MockUnitOfWork.delete_user_face_data`` to delete sessions in the same
+        logical transaction as FaceTemplate/User for domain tests.
+        """
+        uid = uuid.UUID(str(user_id)) if not isinstance(user_id, uuid.UUID) else user_id
+        for sid, session in list(self._sessions.items()):
+            if session.user_id == uid:
+                del self._sessions[sid]
+
 
 __all__ = ["MockSessionManager"]

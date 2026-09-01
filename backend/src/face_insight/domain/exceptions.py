@@ -70,17 +70,60 @@ class ComparisonError(OnboardingError):
     """
 
 
+# --- Deletion-specific exceptions (spec 006, T002) -------------------------
+class Forbidden(OnboardingError):
+    """Authorization failure on the deletion endpoint.
+
+    Raised when the authenticated session's ``user_id`` does not match the
+    path ``userId``. Mapped to ``403 forbidden`` (FR-002). Intentionally
+    revealing: the caller is already authenticated, so disclosing "you can
+    only delete your own data" is demo-grade authz under Constitution
+    Principle VIII (research R-3).
+    """
+
+
+FORBIDDEN_MESSAGE = "Solo puedes eliminar tus propios datos."
+
+
+class NotFound(OnboardingError):
+    """Defensive guard: the ``User`` for the path ``userId`` does not exist.
+
+    Only reachable via out-of-band deletion or a concurrent race (a valid
+    matching session guarantees existence). Mapped to ``404 not_found``
+    (FR-007).
+    """
+
+
+NOT_FOUND_MESSAGE = "No se encontró el usuario."
+
+
+class DeletionInternalError(OnboardingInternalError):
+    """Unexpected failure during the deletion transaction (DB rollback).
+
+    Mapped to ``500 internal_error`` (FR-008). No partial DB state is left.
+    """
+
+
+DELETION_INTERNAL_ERROR_MESSAGE = "Ocurrió un error al eliminar tus datos. Inténtalo de nuevo."
+
+
 __all__ = [
     "AUTH_FAILED_MESSAGE",
     "UNAUTHENTICATED_MESSAGE",
     "AuthFailed",
     "ComparisonError",
+    "DeletionInternalError",
+    "DELETION_INTERNAL_ERROR_MESSAGE",
+    "Forbidden",
+    "FORBIDDEN_MESSAGE",
     "InsufficientQuality",
     "InvalidImage",
     "LoginInternalError",
     "MoodInternalError",
     "MultipleFaces",
     "NoFace",
+    "NotFound",
+    "NOT_FOUND_MESSAGE",
     "OnboardingError",
     "OnboardingInternalError",
     "Unauthenticated",

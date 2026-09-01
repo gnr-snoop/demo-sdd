@@ -307,3 +307,224 @@ async def test_delete_face_data_malformed_uuid_422(client):
     resp = await client.delete("/api/users/not-a-uuid/face-data")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "unauthenticated"
+
+
+# ==========================================================================
+# DELETE /api/users/{userId}/face-data — real logic (spec 006, T004/T012/T017/T024)
+# ==========================================================================
+# These tests build a dedicated auth app with a tmp_path filesystem image storage
+# so they can assert filesystem cleanup without touching the real bind mount.
+from pathlib import Path as _Path  # noqa: E402
+
+from httpx import ASGITransport as _ASGITransport, AsyncClient as _AsyncClient  # noqa: E402
+
+from face_insight.adapters.mock import ScriptableMockDetector as _SMD, ScriptableMockEmbedder as _SME  # noqa: E402
+from face_insight.main import create_auth_app as _create_auth_app  # noqa: E402
+
+from tests.conftest import fixture_bytes as _fixture_bytes  # noqa: E402
+
+
+def fixture_bytes(name: str) -> bytes:  # local alias for the deletion tests
+    return _fixture_bytes(name)
+
+
+async def _deletion_app(tmp_path: _Path):
+    from face_insight.adapters.fs.image_storage import FilesystemImageStorage
+
+    return _create_auth_app(
+        detector=_SMD(),
+        embedder=_SME(),
+        session_factory=None,
+        image_storage=FilesystemImageStorage(root=tmp_path),
+    )
+
+
+async def _deletion_client(app):
+    transport = _ASGITransport(app=app)
+    return _AsyncClient(transport=transport, base_url="http://test")
+
+
+async def _onboard_login(client, app, identifier="demo@example.com"):
+    """Onboard + login; return (userId, loginResponse)."""
+    payload = fixture_bytes("one_face.jpg")
+    data = {"identifier": identifier, "consentAccepted": "true"}
+    files = {"image": ("one_face.jpg", payload, "image/jpeg")}
+    onb = await client.post("/api/onboarding", data=data, files=files)
+    assert onb.status_code == 201, onb.text
+    user_id = onb.json()["userId"]
+    # Login (cookie set on client).
+    login = await client.post(
+        "/api/auth/face-login",
+        data={"identifier": identifier},
+        files={"image": ("one_face.jpg", payload, "image/jpeg")},
+    )
+    assert login.status_code == 200, login.text
+    return user_id
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_200_happy_path(tmp_path):
+    """T004: 200 deletion happy path — echoed userId, status, cleared cookie,
+    DB rows + filesystem folder gone."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        user_id = await _onboard_login(ac, app)
+        # Folder exists before deletion.
+        user_dir = tmp_path / "usuarios" / user_id
+        assert user_dir.exists()
+        # DELETE.
+        resp = await ac.delete(f"/api/users/{user_id}/face-data")
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert set(body.keys()) == {"userId", "status"}
+        assert body["userId"] == user_id
+        assert UUID_RE.match(body["userId"])
+        assert body["status"] == "deleted"
+        # Cookie cleared on the response.
+        cookie = ac.cookies.get("fid_session")
+        assert cookie in (None, "", "null")
+        # DB rows gone (mock repos on app.state).
+        uid = __import__("uuid").UUID(user_id)
+        assert await app.state.user_repository.get(uid) is None
+        assert await app.state.face_template_repository.get_by_user(uid) is None
+        assert all(s.user_id != uid for s in app.state.session_manager._sessions.values())
+        # Filesystem folder gone.
+        assert not user_dir.exists()
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_403_forbidden_mismatched_user(tmp_path):
+    """T012: valid session for A, path userId = B → 403 forbidden; no rows removed."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        user_a = await _onboard_login(ac, app, identifier="a@example.com")
+        # Onboard a second user B (separate client to keep A's cookie).
+        async with await _deletion_client(app) as ac2:
+            user_b = await _onboard_login(ac2, app, identifier="b@example.com")
+        # A's cookie tries to delete B.
+        resp = await ac.delete(f"/api/users/{user_b}/face-data")
+        assert resp.status_code == 403
+        body = resp.json()
+        assert body["error"]["code"] == "forbidden"
+        assert body["error"]["message"] == "Solo puedes eliminar tus propios datos."
+        # No rows removed for A or B.
+        ua = __import__("uuid").UUID(user_a)
+        ub = __import__("uuid").UUID(user_b)
+        assert await app.state.user_repository.get(ua) is not None
+        assert await app.state.user_repository.get(ub) is not None
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_422_malformed_uuid_with_session(tmp_path):
+    """T012: with a valid session, a malformed userId → 422 (path validation)."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        await _onboard_login(ac, app)
+        resp = await ac.delete("/api/users/not-a-uuid/face-data")
+        assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_404_not_found_out_of_band(tmp_path):
+    """T024: valid matching session but User absent (out-of-band) → 404 not_found."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        user_id = await _onboard_login(ac, app)
+        uid = __import__("uuid").UUID(user_id)
+        # Out-of-band: delete the User row but keep the AuthSession (session still valid).
+        await app.state.user_repository.delete(uid)
+        resp = await ac.delete(f"/api/users/{user_id}/face-data")
+        assert resp.status_code == 404
+        assert resp.json()["error"]["code"] == "not_found"
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_500_internal_error_on_db_failure(tmp_path):
+    """T024: DB transaction failure → 500 internal_error."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        user_id = await _onboard_login(ac, app)
+
+        async def boom(_user_id):
+            raise RuntimeError("db down")
+
+        app.state.deletion_service._delete_user_face_data = boom
+        resp = await ac.delete(f"/api/users/{user_id}/face-data")
+        assert resp.status_code == 500
+        assert resp.json()["error"]["code"] == "internal_error"
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_best_effort_fs_failure_200(tmp_path):
+    """T024: DB commits but FS deletion fails → 200 + (warning logged)."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        user_id = await _onboard_login(ac, app)
+
+        def boom(_user_id):
+            raise OSError("disk on fire")
+
+        app.state.image_storage.delete = boom  # type: ignore[assignment]
+        resp = await ac.delete(f"/api/users/{user_id}/face-data")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "deleted"
+        # DB rows still gone (commit succeeded before FS attempt).
+        uid = __import__("uuid").UUID(user_id)
+        assert await app.state.user_repository.get(uid) is None
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_error_body_shape(tmp_path):
+    """T024: every non-2xx error response uses {"error": {"code", "message"}}."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        # 401 (no cookie).
+        r = await ac.delete(f"/api/users/{__import__('uuid').uuid4()}/face-data")
+        assert r.status_code == 401
+        assert set(r.json().keys()) == {"error"}
+        assert set(r.json()["error"].keys()) == {"code", "message"}
+        # 403.
+        user_a = await _onboard_login(ac, app, identifier="a@example.com")
+        async with await _deletion_client(app) as ac2:
+            user_b = await _onboard_login(ac2, app, identifier="b@example.com")
+        r = await ac.delete(f"/api/users/{user_b}/face-data")
+        assert set(r.json()["error"].keys()) == {"code", "message"}
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_post_deletion_invalidation(tmp_path):
+    """T017: after a 200 deletion, old cookie → 401 unauthenticated and old-identifier
+    login → 401 auth_failed (indistinguishable from never-enrolled)."""
+    app = await _deletion_app(tmp_path)
+    async with await _deletion_client(app) as ac:
+        user_id = await _onboard_login(ac, app, identifier="demo@example.com")
+        resp = await ac.delete(f"/api/users/{user_id}/face-data")
+        assert resp.status_code == 200
+        # Old cookie → 401 unauthenticated.
+        me = await ac.get("/api/auth/me")
+        assert me.status_code == 401
+        assert me.json()["error"]["code"] == "unauthenticated"
+        # Old-identifier login → 401 auth_failed.
+        payload = fixture_bytes("one_face.jpg")
+        files = {"image": ("one_face.jpg", payload, "image/jpeg")}
+        login = await ac.post("/api/auth/face-login", data={"identifier": "demo@example.com"}, files=files)
+        assert login.status_code == 401
+        assert login.json()["error"]["code"] == "auth_failed"
+
+
+@pytest.mark.asyncio
+async def test_delete_face_data_status_code_matrix(tmp_path):
+    """T024: the full status-code matrix 200/401/403/404/422/500 is reachable."""
+    app = await _deletion_app(tmp_path)
+    codes: set[int] = set()
+    async with await _deletion_client(app) as ac:
+        # 401.
+        r = await ac.delete(f"/api/users/{__import__('uuid').uuid4()}/face-data")
+        codes.add(r.status_code)
+        user_id = await _onboard_login(ac, app)
+        # 200.
+        r = await ac.delete(f"/api/users/{user_id}/face-data")
+        codes.add(r.status_code)
+    # 403 / 422 / 404 / 500 covered by dedicated tests above; assert the matrix
+    # is exactly {200, 401, 403, 404, 422, 500} via the dedicated cases.
+    assert {200, 401}.issubset(codes)

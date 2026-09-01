@@ -21,6 +21,9 @@ import { useMoodMachine } from "../hooks/useMoodMachine";
 import { api, MoodResponse } from "../services/api";
 
 const MOOD_BUTTON_LABEL = "Detectar estado de ánimo";
+const DELETE_BUTTON_LABEL = "Eliminar mis datos";
+const DELETE_CONFIRM_MESSAGE =
+  "Esta acción eliminará tu perfil y plantilla facial de forma permanente. ¿Continuar?";
 
 /** Render confidence as "≈NN%" (nearest integer) when present (FR-012a). */
 function formatConfidence(confidence: number | null): string | null {
@@ -28,13 +31,19 @@ function formatConfidence(confidence: number | null): string | null {
   return `≈${Math.round(confidence * 100)}%`;
 }
 
+type DeleteState = "idle" | "confirming" | "processing" | "error";
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { logout, userId } = useSession();
+  const { logout, clearSession, userId } = useSession();
   const mood = useMoodMachine();
   // Whether the camera stream is live (permission granted). Acquired on mount
   // via CameraCapture; released on unmount (FR-012b).
   const [cameraReady, setCameraReady] = useState(false);
+
+  // Spec 006 (T022/T023): deletion UI state.
+  const [deleteState, setDeleteState] = useState<DeleteState>("idle");
+  const [deleteError, setDeleteError] = useState<string>("");
 
   const handleLogout = async () => {
     await logout();
@@ -75,7 +84,60 @@ const Dashboard: React.FC = () => {
     mood.send({ type: "RETRY" });
   }, [mood]);
 
+  // --- Spec 006 deletion handlers (T022/T023, research R-7/R-9) ---
+  const handleDeleteClick = useCallback(() => {
+    setDeleteError("");
+    setDeleteState("confirming");
+  }, []);
+
+  const handleDeleteCancel = useCallback(() => {
+    // Cancel: no request, dashboard unchanged (FR-010).
+    setDeleteError("");
+    setDeleteState("idle");
+  }, []);
+
+  const performDeletion = useCallback(async () => {
+    if (!userId) return;
+    setDeleteState("processing");
+    setDeleteError("");
+    try {
+      await api.deleteFaceData(userId);
+      // 200: clear session (without calling /logout), discard held mood/age
+      // results, and navigate to "/" (welcome page). Navigating away unmounts
+      // the Dashboard → CameraCapture unmounts → camera stream released.
+      mood.reset();
+      clearSession();
+      navigate("/", { replace: true });
+    } catch (err) {
+      const code = (err as { code?: string })?.code ?? "internal_error";
+      const message =
+        (err as { message?: string })?.message ??
+        "Ocurrió un error al eliminar tus datos. Inténtalo de nuevo.";
+      if (code === "unauthenticated") {
+        // 401: session expired mid-request → unauthenticated + redirect to /login.
+        clearSession();
+        navigate("/login", { replace: true });
+        return;
+      }
+      // 500 internal_error (or other recoverable) → actionable error + retry,
+      // button re-enabled, no full page reload (FR-011).
+      setDeleteError(message);
+      setDeleteState("error");
+    }
+  }, [userId, mood, clearSession, navigate]);
+
+  const handleDeleteConfirm = useCallback(() => {
+    void performDeletion();
+  }, [performDeletion]);
+
+  const handleDeleteRetry = useCallback(() => {
+    // Re-enter the confirmation flow (actionable retry, no full reload).
+    setDeleteError("");
+    setDeleteState("confirming");
+  }, []);
+
   const confidenceLabel = mood.result ? formatConfidence(mood.result.confidence) : null;
+  const deleteBusy = deleteState === "processing" || deleteState === "confirming";
 
   return (
     <div>
@@ -164,6 +226,80 @@ const Dashboard: React.FC = () => {
             Calcular edad
           </button>
           <span data-testid="age-placeholder">Próximamente</span>
+        </div>
+
+        {/* Spec 006 (T022): "Eliminar mis datos" button + confirmation dialog. */}
+        <div>
+          <button
+            type="button"
+            onClick={handleDeleteClick}
+            disabled={deleteBusy}
+            aria-label={DELETE_BUTTON_LABEL}
+            data-testid="delete-face-data-button"
+          >
+            {DELETE_BUTTON_LABEL}
+          </button>
+
+          {/* Lightweight inline confirmation dialog (research R-8). Keyboard-
+              accessible with descriptive accessible names; state communication
+              uses text + role (not color-only, PRD §10). */}
+          {deleteState === "confirming" && (
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-confirm-heading"
+              data-testid="delete-confirm-dialog"
+            >
+              <h2 id="delete-confirm-heading">Confirmar eliminación</h2>
+              <p data-testid="delete-confirm-message">{DELETE_CONFIRM_MESSAGE}</p>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                aria-label="Confirmar eliminación de mis datos"
+                data-testid="delete-confirm-button"
+              >
+                Confirmar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCancel}
+                aria-label="Cancelar eliminación de mis datos"
+                data-testid="delete-cancel-button"
+              >
+                Cancelar
+              </button>
+            </section>
+          )}
+
+          {/* Processing state (button disabled, actionable text — not color-only). */}
+          {deleteState === "processing" && (
+            <p data-testid="delete-processing" role="status" aria-live="polite">
+              Eliminando tus datos…
+            </p>
+          )}
+
+          {/* Recoverable deletion error surface + retry (FR-011, research R-9). */}
+          {deleteState === "error" && (
+            <section data-testid="delete-error" role="alert" aria-live="assertive">
+              <p data-testid="delete-error-message">{deleteError}</p>
+              <button
+                type="button"
+                onClick={handleDeleteRetry}
+                aria-label="Reintentar eliminación de mis datos"
+                data-testid="delete-retry-button"
+              >
+                Reintentar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCancel}
+                aria-label="Cancelar eliminación de mis datos"
+                data-testid="delete-error-cancel-button"
+              >
+                Cancelar
+              </button>
+            </section>
+          )}
         </div>
 
         <button

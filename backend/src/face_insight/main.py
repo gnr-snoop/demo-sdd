@@ -84,13 +84,16 @@ def wire_mock_adapters(app: FastAPI) -> None:
         MockImageStorage,
         MockMoodEstimator,
         MockSessionManager,
+        MockUnitOfWork,
         MockUserRepository,
     )
     from .adapters.http.session_cookie import SessionCookieService  # noqa: PLC0415
     from .domain.comparison import CosineComparison  # noqa: PLC0415
+    from .domain.deletion import DeletionService  # noqa: PLC0415
     from .domain.login import LoginService  # noqa: PLC0415
     from .domain.mood import MoodService  # noqa: PLC0415
     from .domain.onboarding import OnboardingService  # noqa: PLC0415
+    from .logging import get_logger as _get_logger  # noqa: PLC0415
 
     settings = get_settings()
 
@@ -136,10 +139,29 @@ def wire_mock_adapters(app: FastAPI) -> None:
         quality_threshold=settings.quality_threshold,
     )
 
+    # Spec 006 deletion wiring (T010): DeletionService from the mock ports + a
+    # mock unit-of-work callable (no DB in the all-mock wiring). The callable
+    # deletes FaceTemplate → AuthSession → User in memory (research R-2).
+    mock_uow = MockUnitOfWork(
+        app.state.user_repository,
+        app.state.face_template_repository,
+        app.state.session_manager,
+    )
+    app.state.deletion_service = DeletionService(
+        user_repository=app.state.user_repository,
+        image_storage=app.state.image_storage,
+        delete_user_face_data=mock_uow.delete_user_face_data,
+        logger=_get_logger("face_insight.deletion"),
+    )
+
 
 def create_app() -> FastAPI:
     """Application factory."""
-    from .api.dependencies import UnauthenticatedError, unauthenticated_response  # noqa: PLC0415
+    from .api.dependencies import (  # noqa: PLC0415
+        UnauthenticatedError,
+        register_deletion_exception_handlers,
+        unauthenticated_response,
+    )
 
     app = FastAPI(title="Face Insight Demo", version="0.1.0", lifespan=lifespan)
     register_routes(app)
@@ -148,6 +170,8 @@ def create_app() -> FastAPI:
     @app.exception_handler(UnauthenticatedError)
     async def _unauthenticated_handler(_request, _exc):  # noqa: ANN001
         return unauthenticated_response()
+
+    register_deletion_exception_handlers(app)
 
     @app.get("/health", tags=["infra"])
     async def health() -> dict[str, str]:
@@ -192,11 +216,17 @@ def create_onboarding_app(
     register_routes(app)
     wire_mock_adapters(app)
 
-    from .api.dependencies import UnauthenticatedError, unauthenticated_response  # noqa: PLC0415
+    from .api.dependencies import (  # noqa: PLC0415
+        UnauthenticatedError,
+        register_deletion_exception_handlers,
+        unauthenticated_response,
+    )
 
     @app.exception_handler(UnauthenticatedError)
     async def _unauth_handler(_request, _exc):  # noqa: ANN001
         return unauthenticated_response()
+
+    register_deletion_exception_handlers(app)
 
     # Override onboarding-relevant ports with real/test doubles.
     app.state.detector = detector
@@ -233,6 +263,24 @@ def create_onboarding_app(
         detector=detector,
         mood_estimator=app.state.mood_estimator,
         quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+    )
+
+    # Spec 006 deletion wiring (T010).
+    from .domain.deletion import DeletionService  # noqa: PLC0415
+    from .logging import get_logger as _get_logger  # noqa: PLC0415
+
+    if session_factory is not None:
+        deletion_callable = unit_of_work.delete_user_face_data
+    else:
+        from .adapters.mock import MockUnitOfWork  # noqa: PLC0415
+
+        mock_uow = MockUnitOfWork(user_repo, template_repo, app.state.session_manager)
+        deletion_callable = mock_uow.delete_user_face_data
+    app.state.deletion_service = DeletionService(
+        user_repository=user_repo,
+        image_storage=image_storage,
+        delete_user_face_data=deletion_callable,
+        logger=_get_logger("face_insight.deletion"),
     )
     return app
 
@@ -271,11 +319,17 @@ def create_auth_app(
     register_routes(app)
     wire_mock_adapters(app)
 
-    from .api.dependencies import UnauthenticatedError, unauthenticated_response  # noqa: PLC0415
+    from .api.dependencies import (  # noqa: PLC0415
+        UnauthenticatedError,
+        register_deletion_exception_handlers,
+        unauthenticated_response,
+    )
 
     @app.exception_handler(UnauthenticatedError)
     async def _unauth_handler(_request, _exc):  # noqa: ANN001
         return unauthenticated_response()
+
+    register_deletion_exception_handlers(app)
 
     # Override detector/embedder with the provided (scriptable) test doubles.
     app.state.detector = detector
@@ -331,6 +385,26 @@ def create_auth_app(
         detector=detector,
         mood_estimator=app.state.mood_estimator,
         quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+    )
+
+    # Spec 006 deletion wiring (T010): DeletionService + the
+    # SqlAlchemyUnitOfWork.delete_user_face_data callable (real DB transaction
+    # when session_factory is given; mock unit-of-work otherwise). Research R-2.
+    from .domain.deletion import DeletionService  # noqa: PLC0415
+    from .logging import get_logger as _get_logger  # noqa: PLC0415
+
+    if session_factory is not None:
+        deletion_callable = unit_of_work.delete_user_face_data
+    else:
+        from .adapters.mock import MockUnitOfWork  # noqa: PLC0415
+
+        mock_uow = MockUnitOfWork(user_repo, template_repo, session_manager)
+        deletion_callable = mock_uow.delete_user_face_data
+    app.state.deletion_service = DeletionService(
+        user_repository=user_repo,
+        image_storage=image_storage,
+        delete_user_face_data=deletion_callable,
+        logger=_get_logger("face_insight.deletion"),
     )
     return app
 

@@ -167,7 +167,11 @@ export const api = {
   async deleteFaceData(userId: string): Promise<DeleteFaceDataResponse> {
     const resp = await fetch(`${API_BASE_URL}/api/users/${userId}/face-data`, {
       method: "DELETE",
+      credentials: "include", // send the session cookie (spec 006, research R-6)
     });
+    if (!resp.ok) {
+      await parseError(resp);
+    }
     return resp.json();
   },
 };

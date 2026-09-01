@@ -13,6 +13,7 @@ from .image_storage import MockImageStorage
 from .mood_estimator import MockMoodEstimator, ScriptableMockMoodEstimator
 from .session_manager import MockSessionManager
 from .user_repository import MockUserRepository
+from .unit_of_work import MockUnitOfWork
 
 __all__ = [
     "MockAgeEstimator",
@@ -25,6 +26,7 @@ __all__ = [
     "MockMoodEstimator",
     "ScriptableMockMoodEstimator",
     "MockSessionManager",
+    "MockUnitOfWork",
     "MockUserRepository",
     "FIXED_USER_ID",
 ]
