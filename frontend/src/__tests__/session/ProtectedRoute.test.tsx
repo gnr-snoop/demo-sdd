@@ -69,7 +69,7 @@ describe("SessionContext bootstrap from GET /api/auth/me", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("page-dashboard")).toBeInTheDocument();
     });
-    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/api/auth/me"));
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/api/auth/me"), expect.anything());
     // Cleanup to avoid act warnings.
     container.remove();
   });

@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 
 from ...config import get_settings
-from ...domain.result_types import BoundingBox, DetectionResult
+from ...domain.result_types import BoundingBox, DetectionResult, Landmark
 from ...logging import get_logger
 from .constants import (
     ModelCorruptError,
@@ -118,6 +118,7 @@ class YuNetDetector:
             return DetectionResult(face_count=0, boxes=[], score=0.0)
 
         boxes: list[BoundingBox] = []
+        all_landmarks: list[list[Landmark]] = []
         max_score = 0.0
         for row in faces:
             x = int(row[0])
@@ -128,11 +129,19 @@ class YuNetDetector:
             boxes.append(BoundingBox(x=x, y=y, width=bw, height=bh))
             if conf > max_score:
                 max_score = conf
+            # YuNet 5 landmarks: (x_re,y_re) row[4], row[5] ... row[12], row[13]
+            landmarks: list[Landmark] = []
+            for k in range(5):
+                lx = int(row[4 + k * 2])
+                ly = int(row[4 + k * 2 + 1])
+                landmarks.append(Landmark(x=lx, y=ly))
+            all_landmarks.append(landmarks)
 
         return DetectionResult(
             face_count=len(boxes),
             boxes=boxes,
             score=max_score,
+            landmarks=all_landmarks if all_landmarks else None,
         )
 
 

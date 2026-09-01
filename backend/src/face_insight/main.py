@@ -48,12 +48,13 @@ async def db_is_ready() -> bool:
 
 def register_routes(app: FastAPI) -> None:
     """Register all API routers (wired in US3, T038)."""
-    from .api.routes import analysis, auth, onboarding, users  # noqa: PLC0415
+    from .api.routes import analysis, auth, onboarding, preview, users  # noqa: PLC0415
 
     app.include_router(onboarding.router)
     app.include_router(auth.router)
     app.include_router(analysis.router)
     app.include_router(users.router)
+    app.include_router(preview.router)
 
 
 @asynccontextmanager

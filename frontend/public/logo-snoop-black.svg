@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 32" role="img" aria-label="Snoop Consulting">
+  <!-- Placeholder logo-snoop-black.svg (monocromático) — Snoop × Claude style guide §4.0.
+       Wordmark "snoop" en negro #000000 sobre transparente. Sobre fondos oscuros/rojos se aplica
+       filter: invert(1) brightness(2) → se vuelve blanco. -->
+  <text x="0" y="24" font-family="Georgia, serif" font-size="22" font-weight="700" fill="#000000" letter-spacing="-0.5">snoop</text>
+</svg>

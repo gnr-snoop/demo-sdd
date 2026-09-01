@@ -63,18 +63,24 @@ describe("Dashboard — mood analysis", () => {
       configurable: true,
     });
     // jsdom does not implement canvas 2d / toBlob — mock both.
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => ({
       drawImage: vi.fn(),
-    })) as unknown as HTMLCanvasElement["getContext"];
-    HTMLCanvasElement.prototype.toBlob = vi.fn(
-      (callback: BlobCallback, _type: string, _quality?: unknown) => {
+      clearRect: vi.fn(),
+      strokeRect: vi.fn(),
+      beginPath: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      setTransform: vi.fn(),
+    }) as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(((callback: BlobCallback, _type: string, _quality?: unknown) => {
         callback(new Blob(["fake-jpeg"], { type: "image/jpeg" }));
-      },
-    ) as HTMLCanvasElement["toBlob"];
+      }) as unknown as typeof HTMLCanvasElement.prototype.toBlob);
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("renders the dashboard, camera preview, mood button, and ENABLED age button (spec 005)", async () => {
@@ -275,18 +281,24 @@ describe("Dashboard — age analysis (spec 005)", () => {
       value: { getUserMedia: vi.fn().mockResolvedValue(makeFakeStream()) },
       configurable: true,
     });
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => ({
       drawImage: vi.fn(),
-    })) as unknown as HTMLCanvasElement["getContext"];
-    HTMLCanvasElement.prototype.toBlob = vi.fn(
-      (callback: BlobCallback, _type: string, _quality?: unknown) => {
+      clearRect: vi.fn(),
+      strokeRect: vi.fn(),
+      beginPath: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      setTransform: vi.fn(),
+    }) as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(((callback: BlobCallback, _type: string, _quality?: unknown) => {
         callback(new Blob(["fake-jpeg"], { type: "image/jpeg" }));
-      },
-    ) as HTMLCanvasElement["toBlob"];
+      }) as unknown as typeof HTMLCanvasElement.prototype.toBlob);
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("age button is keyboard-accessible with a descriptive name (FR-012/FR-013)", async () => {

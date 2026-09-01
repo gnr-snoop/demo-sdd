@@ -16,13 +16,14 @@
 
 from __future__ import annotations
 
-from ...domain.result_types import BoundingBox, DetectionResult
+from ...domain.result_types import BoundingBox, DetectionResult, Landmark
 
 # Hardcoded constant output for the plain mock (data-model.md).
 _RESULT = DetectionResult(
     face_count=1,
     boxes=[BoundingBox(x=0, y=0, width=100, height=100)],
     score=0.99,
+    landmarks=[[Landmark(x=30, y=35), Landmark(x=70, y=35), Landmark(x=50, y=60), Landmark(x=35, y=80), Landmark(x=65, y=80)]],
 )
 
 
@@ -42,8 +43,9 @@ _DEFAULT_RESULT = DetectionResult(
     face_count=1,
     boxes=[BoundingBox(x=0, y=0, width=100, height=100)],
     score=0.99,
+    landmarks=[[Landmark(x=30, y=35), Landmark(x=70, y=35), Landmark(x=50, y=60), Landmark(x=35, y=80), Landmark(x=65, y=80)]],
 )
-_NO_FACE_RESULT = DetectionResult(face_count=0, boxes=[], score=0.0)
+_NO_FACE_RESULT = DetectionResult(face_count=0, boxes=[], score=0.0, landmarks=None)
 _MULTI_FACE_RESULT = DetectionResult(
     face_count=2,
     boxes=[
@@ -51,11 +53,16 @@ _MULTI_FACE_RESULT = DetectionResult(
         BoundingBox(x=120, y=0, width=100, height=100),
     ],
     score=0.99,
+    landmarks=[
+        [Landmark(x=30, y=35), Landmark(x=70, y=35), Landmark(x=50, y=60), Landmark(x=35, y=80), Landmark(x=65, y=80)],
+        [Landmark(x=150, y=35), Landmark(x=190, y=35), Landmark(x=170, y=60), Landmark(x=155, y=80), Landmark(x=185, y=80)],
+    ],
 )
 _LOW_QUALITY_RESULT = DetectionResult(
     face_count=1,
     boxes=[BoundingBox(x=0, y=0, width=100, height=100)],
     score=0.1,
+    landmarks=[[Landmark(x=30, y=35), Landmark(x=70, y=35), Landmark(x=50, y=60), Landmark(x=35, y=80), Landmark(x=65, y=80)]],
 )
 
 

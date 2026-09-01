@@ -50,9 +50,11 @@ def test_yunet_detector_class_has_model_version_attribute():
 
 
 def test_detection_result_shape_unchanged():
-    """FR-018: DetectionResult still has face_count/boxes/score (no new attrs)."""
+    """FR-018: DetectionResult has face_count/boxes/score (+ optional landmarks for preview 011)."""
     fields = {f.name for f in __import__("dataclasses").fields(DetectionResult)}
-    assert fields == {"face_count", "boxes", "score"}
+    assert {"face_count", "boxes", "score"}.issubset(fields)
+    # 011 adds optional landmarks for preview overlay (YuNet 5-point)
+    assert fields.issubset({"face_count", "boxes", "score", "landmarks"})
 
 
 def test_bounding_box_shape_unchanged():

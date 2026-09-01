@@ -34,6 +34,16 @@ services:
       - ./backend:/app
       - ./usuarios:/app/usuarios:rw
       - ./models:/app/models:rw
+    # Optional GPU reservation for capture-time CUDA optimization (011, R-7).
+    # Additive, safe to omit on CPU hosts/CI — requires NVIDIA Container Toolkit on host.
+    # Preview overlay remains client-side and is unaffected by this stanza.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     command: >
       sh -c "if [ \"$APP_MODE\" = \"production\" ]; then alembic upgrade head; fi &&
              uvicorn face_insight.main:app --host 0.0.0.0 --port 8000 --reload"
