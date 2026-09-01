@@ -2,7 +2,7 @@
 // Consumed by later specs; this module establishes the typed call surface and
 // a single configurable base URL.
 
-const DEFAULT_BASE_URL = "http://localhost:8000";
+const DEFAULT_BASE_URL = "";
 
 export const API_BASE_URL: string =
   (import.meta as unknown as { env?: { VITE_API_BASE_URL?: string } }).env?.VITE_API_BASE_URL ??
@@ -122,7 +122,11 @@ export const api = {
 
   async faceLogin(identifier: string, image: Blob): Promise<FaceLoginResponse> {
     const body = await multipart(identifier, image);
-    const resp = await fetch(`${API_BASE_URL}/api/auth/face-login`, { method: "POST", body });
+    const resp = await fetch(`${API_BASE_URL}/api/auth/face-login`, {
+      method: "POST",
+      body,
+      credentials: "include",
+    });
     if (!resp.ok) {
       await parseError(resp);
     }
@@ -130,7 +134,7 @@ export const api = {
   },
 
   async getMe(): Promise<AuthMeResponse> {
-    const resp = await fetch(`${API_BASE_URL}/api/auth/me`);
+    const resp = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: "include" });
     if (!resp.ok) {
       await parseError(resp, "unauthenticated");
     }
@@ -138,7 +142,10 @@ export const api = {
   },
 
   async logout(): Promise<LogoutResponse> {
-    const resp = await fetch(`${API_BASE_URL}/api/auth/logout`, { method: "POST" });
+    const resp = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
     return resp.json();
   },
 

@@ -26,6 +26,7 @@ services:
     environment:
       DATABASE_URL: "postgresql+asyncpg://faceinsight:faceinsight@postgres:5432/faceinsight"
       VERIFICATION_THRESHOLD: "0.5"
+      PYTHONPATH: "/app/src"
     ports:
       - "8000:8000"
     volumes:
@@ -38,6 +39,8 @@ services:
   frontend:
     build:
       context: ./frontend
+    environment:
+      VITE_API_PROXY_TARGET: "http://backend:8000"
     ports:
       - "5173:5173"
     volumes:
