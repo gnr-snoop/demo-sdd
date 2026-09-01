@@ -3,8 +3,19 @@
 // Uses navigator.mediaDevices.getUserMedia({ video: true }) → <video> preview →
 // hidden <canvas> + drawImage + toBlob('image/jpeg'). The capture button is
 // keyboard-accessible with an aria-label (FR-015).
+//
+// Spec 005: exposes an imperative `capture()` method via forwardRef so an
+// external button (e.g. the age button on the dashboard) can trigger a still
+// capture from the same live preview without opening a second stream (FR-012b).
+// The built-in capture button (when `captureButtonLabel` is provided) calls the
+// same `capture()` method — both paths go through `onCapture`.
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from "react";
+
+export interface CameraCaptureHandle {
+  /** Trigger a still capture from the live preview. No-op if the stream is not ready. */
+  capture: () => void;
+}
 
 export interface CameraCaptureProps {
   /** When true, request the camera and show the preview. */
@@ -17,7 +28,8 @@ export interface CameraCaptureProps {
   onPermissionDenied: () => void;
   /** Disable the capture button (e.g. during processing). */
   disabled?: boolean;
-  /** Optional capture button label (default "Capturar"). */
+  /** Optional capture button label (default "Capturar"). When undefined, no
+   * built-in button is rendered (the caller triggers captures via the ref). */
   captureButtonLabel?: string;
   /** Optional capture button aria-label (default "Capturar rostro"). */
   captureButtonAriaLabel?: string;
@@ -25,16 +37,19 @@ export interface CameraCaptureProps {
   captureButtonTestId?: string;
 }
 
-const CameraCapture: React.FC<CameraCaptureProps> = ({
-  active,
-  onCapture,
-  onPermissionGranted,
-  onPermissionDenied,
-  disabled = false,
-  captureButtonLabel = "Capturar",
-  captureButtonAriaLabel = "Capturar rostro",
-  captureButtonTestId = "capture-button",
-}) => {
+const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(function CameraCapture(
+  {
+    active,
+    onCapture,
+    onPermissionGranted,
+    onPermissionDenied,
+    disabled = false,
+    captureButtonLabel = "Capturar",
+    captureButtonAriaLabel = "Capturar rostro",
+    captureButtonTestId = "capture-button",
+  },
+  ref,
+) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -83,7 +98,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
     };
   }, [active, onPermissionGranted, onPermissionDenied]);
 
-  const handleCapture = useCallback(() => {
+  const capture = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || !streamReady) return;
@@ -103,6 +118,9 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
     );
   }, [streamReady, onCapture]);
 
+  // Expose the imperative capture method (spec 005).
+  useImperativeHandle(ref, () => ({ capture }), [capture]);
+
   return (
     <div data-testid="camera-capture">
       <video
@@ -116,7 +134,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
       {active && streamReady && (
         <button
           type="button"
-          onClick={handleCapture}
+          onClick={capture}
           disabled={disabled}
           aria-label={captureButtonAriaLabel}
           data-testid={captureButtonTestId}
@@ -126,6 +144,6 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({
       )}
     </div>
   );
-};
+});
 
 export default CameraCapture;

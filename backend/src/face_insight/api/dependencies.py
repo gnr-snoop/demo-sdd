@@ -98,6 +98,16 @@ def get_mood_service(request: Request) -> object:
     return request.app.state.mood_service
 
 
+def get_age_service(request: Request) -> object:
+    """Resolve the wired ``AgeService`` from ``app.state`` (spec 005, T007/R-6).
+
+    The service is built in ``main.wire_mock_adapters`` / ``create_auth_app``
+    from the mock detector + age estimator ports and stored on
+    ``app.state.age_service``.
+    """
+    return request.app.state.age_service
+
+
 # --- Spec 006 deletion error handlers (T003) --------------------------------
 def register_deletion_exception_handlers(app) -> None:
     """Register ``Forbidden``→403, ``NotFound``→404, ``DeletionInternalError``→500

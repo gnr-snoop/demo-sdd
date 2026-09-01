@@ -21,6 +21,19 @@ dependencies = [
     "python-multipart>=0.0.9",
     "Pillow>=10.0",
     "itsdangerous>=2.1",
+    # Spec 008 (FR-014): concrete ML adapter runtime deps. Imported only by
+    # adapters/ml/* (FR-013/FR-014 — never by the domain or mock wiring path).
+    "opencv-python-headless>=4.8",
+    "onnxruntime>=1.16",
+    "numpy>=1.24",
+    # Spec 009 (FR-013/R-9): concrete mood/age adapter runtime deps. Imported
+    # ONLY by adapters/ml/emotieff_mood.py and adapters/ml/mivolo_age.py — never
+    # by the domain, mock wiring, or the other adapters/ml modules (FR-012).
+    # torch is the CPU build (no CUDA) — install via the CPU index in the
+    # container (Constitution Quality Gate §7 — no GPU to develop/test).
+    "torch>=2.1",
+    "timm==0.8.13.dev0",
+    "hsemotion-onnx>=0.1",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +43,11 @@ dev = [
     "ruff>=0.4",
     "black>=24.3",
 ]
+test = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "testcontainers>=4.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -38,6 +56,12 @@ where = ["src"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 addopts = "-v"
+markers = [
+    # Spec 008 (FR-015, R-6): real-model integration tests. Skipped via an
+    # autouse guard when model files are absent OR APP_MODE != "production"
+    # (Constitution Quality Gate §7 — CI without models stays green).
+    "requires_models: requires real ML model files in models/ and APP_MODE=production",
+]
 
 [tool.ruff]
 line-length = 100

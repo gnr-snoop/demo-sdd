@@ -5,12 +5,6 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 # Tasks: Age Estimation from Authenticated Dashboard (Fase 4 — age)
 
-> ## ⏳ PENDING — IMPLEMENTATION DEFERRED FOR A LIVE DEMO
->
-> **This `tasks.md` is implementation-ready but is intentionally NOT executed in this session.** It is reserved for a live SDD demo. All upstream gates (specify / clarify / plan / tasks / analyze) produce complete artifacts; the implement gate is deliberately deferred.
->
-> The tasks below are complete, ordered, and file-pathed so the live demo can proceed directly from this checklist. Specs 001–004 are already implemented; this spec enables the age button and fills `POST /api/analysis/age` with real orchestration on top of the existing hexagonal ports + mock adapters. Real ML models are deferred to Fase 5 (mock age estimator retained — FR-016).
-
 **Input**: Design documents from `/specs/005-age-analysis/`
 
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/analysis-age.md, quickstart.md
@@ -37,8 +31,8 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 **Purpose**: Additive configuration + constant bumps on the existing stack. No new project, no new dependency, no migration.
 
-- [ ] T001 Add `age_range_half_width_years: int = 5` field to the pydantic `Settings` in `backend/src/face_insight/config.py` (with a `>= 0` invariant via field validator or clamp). Update `age_model_version` default to `"mock-age-estimator-v1"` (FR-004, FR-017, R-3, R-11).
-- [ ] T002 [P] Update `AGE_MODEL_VERSION` constant to `"mock-age-estimator-v1"` and add age byte markers (`AGEPOINT`, `AGERANGE`, `AGEFAIL`) in `backend/src/face_insight/adapters/mock/constants.py` (R-5, R-11).
+- [X] T001 Add `age_range_half_width_years: int = 5` field to the pydantic `Settings` in `backend/src/face_insight/config.py` (with a `>= 0` invariant via field validator or clamp). Update `age_model_version` default to `"mock-age-estimator-v1"` (FR-004, FR-017, R-3, R-11).
+- [X] T002 [P] Update `AGE_MODEL_VERSION` constant to `"mock-age-estimator-v1"` and add age byte markers (`AGEPOINT`, `AGERANGE`, `AGEFAIL`) in `backend/src/face_insight/adapters/mock/constants.py` (R-5, R-11).
 
 **Checkpoint**: Config + constants ready for the domain and adapter layers.
 
@@ -50,13 +44,13 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Widen `AgeResult.range` from `tuple[int, int]` to `tuple[int, int] | None` in `backend/src/face_insight/domain/result_types.py` (backward-compatible; supports point-only port output — data-model.md, research.md R-2).
-- [ ] T004 [P] Add `AgeInternalError` domain exception in `backend/src/face_insight/domain/exceptions.py` (mapped to `500 internal_error`; mirrors `MoodInternalError` — R-4).
-- [ ] T005 [P] Introduce dedicated `AgeRange(BaseModel)` schema (`min: int`, `max: int`) in `backend/src/face_insight/api/schemas.py` and update `AgeResponse.range` from `MoodRange` to `AgeRange`. Keep `AGE_DISCLAIMER` constant as the exact PRD §8 string (R-12, FR-003).
-- [ ] T006 [P] Add `ScriptableMockAgeEstimator` to `backend/src/face_insight/adapters/mock/age_estimator.py` (byte-marker controllable: `AGEPOINT`→point-only `40`/None, `AGERANGE`→range `(35,45)`/`40`, `AGEFAIL`→raise, default→`32`/`(27,37)`). Keep `MockAgeEstimator` as the production default (R-5, FR-016).
-- [ ] T007 [P] Add `get_age_service` dependency to `backend/src/face_insight/api/dependencies.py` resolving `app.state.age_service` (mirrors `get_mood_service`).
-- [ ] T008 Scaffold `app.state.age_service` slot in `backend/src/face_insight/main.py` (attribute initialization placeholder) and in `create_auth_app`. The real `AgeService` is wired in T008b after T013 creates it.
-- [ ] T009 [P] Extend `backend/tests/domain/test_domain_purity.py` to assert `backend/src/face_insight/domain/age.py` imports no FastAPI / Pillow / SQLAlchemy / ML library / `adapters` / `api` (enforces FR-015/SC-009 once `age.py` exists; allow the import-check to skip if the file is absent during foundational phase, then harden after T010).
+- [X] T003 Widen `AgeResult.range` from `tuple[int, int]` to `tuple[int, int] | None` in `backend/src/face_insight/domain/result_types.py` (backward-compatible; supports point-only port output — data-model.md, research.md R-2).
+- [X] T004 [P] Add `AgeInternalError` domain exception in `backend/src/face_insight/domain/exceptions.py` (mapped to `500 internal_error`; mirrors `MoodInternalError` — R-4).
+- [X] T005 [P] Introduce dedicated `AgeRange(BaseModel)` schema (`min: int`, `max: int`) in `backend/src/face_insight/api/schemas.py` and update `AgeResponse.range` from `MoodRange` to `AgeRange`. Keep `AGE_DISCLAIMER` constant as the exact PRD §8 string (R-12, FR-003).
+- [X] T006 [P] Add `ScriptableMockAgeEstimator` to `backend/src/face_insight/adapters/mock/age_estimator.py` (byte-marker controllable: `AGEPOINT`→point-only `40`/None, `AGERANGE`→range `(35,45)`/`40`, `AGEFAIL`→raise, default→`32`/`(27,37)`). Keep `MockAgeEstimator` as the production default (R-5, FR-016).
+- [X] T007 [P] Add `get_age_service` dependency to `backend/src/face_insight/api/dependencies.py` resolving `app.state.age_service` (mirrors `get_mood_service`).
+- [X] T008 Scaffold `app.state.age_service` slot in `backend/src/face_insight/main.py` (attribute initialization placeholder) and in `create_auth_app`. The real `AgeService` is wired in T008b after T013 creates it.
+- [X] T009 [P] Extend `backend/tests/domain/test_domain_purity.py` to assert `backend/src/face_insight/domain/age.py` imports no FastAPI / Pillow / SQLAlchemy / ML library / `adapters` / `api` (enforces FR-015/SC-009 once `age.py` exists; allow the import-check to skip if the file is absent during foundational phase, then harden after T010).
 
 **Checkpoint**: Foundation ready — domain types, exception, schema, scriptable mock, dependency, and app wiring in place. User story implementation can now begin.
 
@@ -72,19 +66,19 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation.**
 
-- [ ] T010 [P] [US1] Unit tests for `normalize_age_result` in `backend/tests/unit/test_age_service.py` — range→midpoint, invariants (`min >= 0`, `min <= estimated_age <= max`), `min` clamping to 0 (FR-004/SC-014).
-- [ ] T011 [P] [US1] Contract test for the `200` age response shape (integers, range invariants, exact disclaimer, `model_version == "mock-age-estimator-v1"`) in `backend/tests/contract/test_age_contracts.py` (contract assertions 1, 10, 12 from `contracts/analysis-age.md`).
-- [ ] T012 [P] [US1] Integration test for the happy path (valid session + one-face fixture → `200` with `estimatedAge/range/disclaimer`) in `backend/tests/integration/test_age_analysis.py`.
+- [X] T010 [P] [US1] Unit tests for `normalize_age_result` in `backend/tests/unit/test_age_service.py` — range→midpoint, invariants (`min >= 0`, `min <= estimated_age <= max`), `min` clamping to 0 (FR-004/SC-014).
+- [X] T011 [P] [US1] Contract test for the `200` age response shape (integers, range invariants, exact disclaimer, `model_version == "mock-age-estimator-v1"`) in `backend/tests/contract/test_age_contracts.py` (contract assertions 1, 10, 12 from `contracts/analysis-age.md`).
+- [X] T012 [P] [US1] Integration test for the happy path (valid session + one-face fixture → `200` with `estimatedAge/range/disclaimer`) in `backend/tests/integration/test_age_analysis.py`.
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Create `AgeService` use-case + pure `normalize_age_result` function in `backend/src/face_insight/domain/age.py` — orchestration: detect (exactly one face + quality threshold) → `estimate_age` → normalize → return `AgeResult` (range guaranteed non-None). Port-only deps (FR-005/FR-015, R-1, R-2).
+- [X] T013 [P] [US1] Create `AgeService` use-case + pure `normalize_age_result` function in `backend/src/face_insight/domain/age.py` — orchestration: detect (exactly one face + quality threshold) → `estimate_age` → normalize → return `AgeResult` (range guaranteed non-None). Port-only deps (FR-005/FR-015, R-1, R-2).
 
-- [ ] T008b [US1] Wire real `AgeService` into `app.state.age_service` in `wire_mock_adapters` and `create_auth_app` (build from mock `Detector` + mock `AgeEstimator` + `settings.age_range_half_width_years`). (Depends on T008 + T013.)
-- [ ] T014 [US1] Replace the stub age handler in `backend/src/face_insight/api/routes/analysis.py` with real orchestration: `Depends(require_valid_session)` → `decode_and_normalize` (spec 002 limits) → `AgeService.analyze` → build `AgeResponse(estimatedAge, range=AgeRange(min,max), disclaimer=AGE_DISCLAIMER)` → `200 OK`. Mirror the spec 004 mood route's structured logging (`analysis.age`, `duration_ms`, `status`). Mood route unchanged (FR-020). (Depends on T007, T013.)
-- [ ] T015 [P] [US1] Update `analysisAge(image)` in `frontend/src/services/api.ts` to send `credentials: "include"` (session cookie) and parse errors via the existing `parseError` helper (mirrors the spec 004 `analysisMood` update).
-- [ ] T016 [P] [US1] Create `useAgeMachine` reducer hook in `frontend/src/hooks/useAgeMachine.ts` — states `idle → processing → result | error` (+ `camera_unavailable`), events `CAPTURE/SUCCEEDED/FAILED/RETRY/RESET`, mirroring `useMoodMachine` (R-6, FR-008).
-- [ ] T017 [US1] Update `frontend/src/pages/Dashboard.tsx` to enable the "Calcular edad" button (remove the `age-placeholder` "Próximamente" indication — FR-013), wire it to `useAgeMachine` + `CameraCapture.onCapture`, and render the age result surface: range as `"min–max años"`, point estimate as `"≈NN años"` (only point estimate when `min == max`), followed by the disclaimer (FR-012a/FR-003). Add the independent age loading indicator. (Depends on T016.)
+- [X] T008b [US1] Wire real `AgeService` into `app.state.age_service` in `wire_mock_adapters` and `create_auth_app` (build from mock `Detector` + mock `AgeEstimator` + `settings.age_range_half_width_years`). (Depends on T008 + T013.)
+- [X] T014 [US1] Replace the stub age handler in `backend/src/face_insight/api/routes/analysis.py` with real orchestration: `Depends(require_valid_session)` → `decode_and_normalize` (spec 002 limits) → `AgeService.analyze` → build `AgeResponse(estimatedAge, range=AgeRange(min,max), disclaimer=AGE_DISCLAIMER)` → `200 OK`. Mirror the spec 004 mood route's structured logging (`analysis.age`, `duration_ms`, `status`). Mood route unchanged (FR-020). (Depends on T007, T013.)
+- [X] T015 [P] [US1] Update `analysisAge(image)` in `frontend/src/services/api.ts` to send `credentials: "include"` (session cookie) and parse errors via the existing `parseError` helper (mirrors the spec 004 `analysisMood` update).
+- [X] T016 [P] [US1] Create `useAgeMachine` reducer hook in `frontend/src/hooks/useAgeMachine.ts` — states `idle → processing → result | error` (+ `camera_unavailable`), events `CAPTURE/SUCCEEDED/FAILED/RETRY/RESET`, mirroring `useMoodMachine` (R-6, FR-008).
+- [X] T017 [US1] Update `frontend/src/pages/Dashboard.tsx` to enable the "Calcular edad" button (remove the `age-placeholder` "Próximamente" indication — FR-013), wire it to `useAgeMachine` + `CameraCapture.onCapture`, and render the age result surface: range as `"min–max años"`, point estimate as `"≈NN años"` (only point estimate when `min == max`), followed by the disclaimer (FR-012a/FR-003). Add the independent age loading indicator. (Depends on T016.)
 
 **Checkpoint**: User Story 1 fully functional — happy-path age estimation works end-to-end and is independently testable.
 
@@ -98,14 +92,14 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Unit tests for point-only normalization (derived symmetric range, half-width 5, `min` clamped to 0) and error-code mapping in `backend/tests/unit/test_age_service.py`.
-- [ ] T019 [P] [US2] Contract tests for `400` (`invalid_image`, `no_face`, `multiple_faces`, `insufficient_quality`), `500 internal_error`, point-only → derived range, range → midpoint, and the pinned error body shape in `backend/tests/contract/test_age_contracts.py` (contract assertions 2, 3, 5–9, 11).
-- [ ] T020 [P] [US2] Integration tests for each capture-quality failure, the port-error path (`AGEFAIL` fixture), and the `insufficient_quality` fixture (mock detector `LOWQUALITY` marker) in `backend/tests/integration/test_age_analysis.py`.
+- [X] T018 [P] [US2] Unit tests for point-only normalization (derived symmetric range, half-width 5, `min` clamped to 0) and error-code mapping in `backend/tests/unit/test_age_service.py`.
+- [X] T019 [P] [US2] Contract tests for `400` (`invalid_image`, `no_face`, `multiple_faces`, `insufficient_quality`), `500 internal_error`, point-only → derived range, range → midpoint, and the pinned error body shape in `backend/tests/contract/test_age_contracts.py` (contract assertions 2, 3, 5–9, 11).
+- [X] T020 [P] [US2] Integration tests for each capture-quality failure, the port-error path (`AGEFAIL` fixture), and the `insufficient_quality` fixture (mock detector `LOWQUALITY` marker) in `backend/tests/integration/test_age_analysis.py`.
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Add `_AGE_ERROR_MAP` (domain exception → status/code/actionable message) and `_error_response` builder to the age handler in `backend/src/face_insight/api/routes/analysis.py`, mapping `InvalidImage`→`400 invalid_image`, `NoFace`→`400 no_face`, `MultipleFaces`→`400 multiple_faces`, `InsufficientQuality`→`400 insufficient_quality`, `AgeInternalError`→`500 internal_error`, with a boundary catch for unexpected → `500 internal_error`. Wrap `AgeService.analyze` so port failures raise `AgeInternalError`. No age result produced on any error path (FR-006/FR-007, R-4). (Depends on T014.)
-- [ ] T022 [US2] Add the age error surface + retry (no full page reload) to `frontend/src/pages/Dashboard.tsx` driven by `useAgeMachine` `error` state, with the actionable message from the parsed error body (FR-011/FR-015). (Depends on T017.)
+- [X] T021 [US2] Add `_AGE_ERROR_MAP` (domain exception → status/code/actionable message) and `_error_response` builder to the age handler in `backend/src/face_insight/api/routes/analysis.py`, mapping `InvalidImage`→`400 invalid_image`, `NoFace`→`400 no_face`, `MultipleFaces`→`400 multiple_faces`, `InsufficientQuality`→`400 insufficient_quality`, `AgeInternalError`→`500 internal_error`, with a boundary catch for unexpected → `500 internal_error`. Wrap `AgeService.analyze` so port failures raise `AgeInternalError`. No age result produced on any error path (FR-006/FR-007, R-4). (Depends on T014.)
+- [X] T022 [US2] Add the age error surface + retry (no full page reload) to `frontend/src/pages/Dashboard.tsx` driven by `useAgeMachine` `error` state, with the actionable message from the parsed error body (FR-011/FR-015). (Depends on T017.)
 
 **Checkpoint**: User Stories 1 AND 2 both work — happy path plus complete, actionable age error handling covering all four capture-quality codes and the port-error path.
 
@@ -119,13 +113,13 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [US3] Contract + integration tests for `401 unauthenticated` (no cookie, expired session, revoked session) and no analysis performed, in `backend/tests/contract/test_age_contracts.py` and `backend/tests/integration/test_age_analysis.py` (contract assertion 4).
-- [ ] T024 [P] [US3] Frontend tests for the shared capture mutex in `frontend/src/__tests__/dashboard/` — double press of age ignored, press of mood during age in-flight ignored (and vice versa), both buttons re-enable on completion (FR-014/SC-006).
+- [X] T023 [P] [US3] Contract + integration tests for `401 unauthenticated` (no cookie, expired session, revoked session) and no analysis performed, in `backend/tests/contract/test_age_contracts.py` and `backend/tests/integration/test_age_analysis.py` (contract assertion 4).
+- [X] T024 [P] [US3] Frontend tests for the shared capture mutex in `frontend/src/__tests__/dashboard/` — double press of age ignored, press of mood during age in-flight ignored (and vice versa), both buttons re-enable on completion (FR-014/SC-006).
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Add the dashboard-level shared capture mutex to `frontend/src/pages/Dashboard.tsx`: `anyAnalysisInFlight = mood.isProcessing || age.isProcessing`; bind both buttons' `disabled` and `CameraCapture`'s `disabled` to it (FR-009/FR-014, R-6). Each hook retains independent state. (Depends on T017; mood hook unchanged — FR-020.)
-- [ ] T026 [US3] Handle in-flight `401 unauthenticated` on the age request in `frontend/src/hooks/useAgeMachine.ts` + `Dashboard.tsx`: discard any partial age result and transition to the unauthenticated state (redirect to `/login`) (AC-008 US3 scenario 5). (Depends on T016, T025.)
+- [X] T025 [US3] Add the dashboard-level shared capture mutex to `frontend/src/pages/Dashboard.tsx`: `anyAnalysisInFlight = mood.isProcessing || age.isProcessing`; bind both buttons' `disabled` and `CameraCapture`'s `disabled` to it (FR-009/FR-014, R-6). Each hook retains independent state. (Depends on T017; mood hook unchanged — FR-020.)
+- [X] T026 [US3] Handle in-flight `401 unauthenticated` on the age request in `frontend/src/hooks/useAgeMachine.ts` + `Dashboard.tsx`: discard any partial age result and transition to the unauthenticated state (redirect to `/login`) (AC-008 US3 scenario 5). (Depends on T016, T025.)
 
 **Checkpoint**: Age endpoint is real-session-gated and the dashboard enforces one capture at a time across both analyses.
 
@@ -139,13 +133,13 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 ### Tests for User Story 4
 
-- [ ] T027 [P] [US4] Frontend tests in `frontend/src/__tests__/age/` and `frontend/src/__tests__/dashboard/` for: button enabled + keyboard-accessible + descriptive `aria-label` + no placeholder; age loading indicator on press; result rendering (range, point estimate, disclaimer, narrow-range `min==max` → point only); error surface + retry; `camera_unavailable` state (denied `getUserMedia` → actionable error + retry, no backend call); independent mood/age surfaces (age result not cleared by mood analysis and vice versa); state not communicated exclusively by color (FR-012/FR-012a/FR-012c/SC-016/SC-018).
+- [X] T027 [P] [US4] Frontend tests in `frontend/src/__tests__/age/` and `frontend/src/__tests__/dashboard/` for: button enabled + keyboard-accessible + descriptive `aria-label` + no placeholder; age loading indicator on press; result rendering (range, point estimate, disclaimer, narrow-range `min==max` → point only); error surface + retry; `camera_unavailable` state (denied `getUserMedia` → actionable error + retry, no backend call); independent mood/age surfaces (age result not cleared by mood analysis and vice versa); state not communicated exclusively by color (FR-012/FR-012a/FR-012c/SC-016/SC-018).
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] Add keyboard accessibility + descriptive `aria-label="Calcular edad"` to the age button, ensure result/error states do not rely exclusively on color (use text + icons), and render the narrow-range case (`min == max` → only `"≈NN años"`) in `frontend/src/pages/Dashboard.tsx` (FR-012/FR-012a). (Depends on T017, T022.)
-- [ ] T029 [US4] Wire `CameraCapture.onPermissionDenied` to drive `useAgeMachine` `CAMERA_DENIED` → `camera_unavailable` state with an actionable "grant camera permission" message + retry (no backend call) in `frontend/src/pages/Dashboard.tsx` (FR-012c/SC-016). (Depends on T017.)
-- [ ] T030 [US4] Ensure the most recent age result is held in `Dashboard` component state and remains visible until a new age analysis or unmount/logout, and is discarded on logout (inaccessible without re-authentication) in `frontend/src/pages/Dashboard.tsx` (FR-010/SC-007/SC-015). (Depends on T017.)
+- [X] T028 [US4] Add keyboard accessibility + descriptive `aria-label="Calcular edad"` to the age button, ensure result/error states do not rely exclusively on color (use text + icons), and render the narrow-range case (`min == max` → only `"≈NN años"`) in `frontend/src/pages/Dashboard.tsx` (FR-012/FR-012a). (Depends on T017, T022.)
+- [X] T029 [US4] Wire `CameraCapture.onPermissionDenied` to drive `useAgeMachine` `CAMERA_DENIED` → `camera_unavailable` state with an actionable "grant camera permission" message + retry (no backend call) in `frontend/src/pages/Dashboard.tsx` (FR-012c/SC-016). (Depends on T017.)
+- [X] T030 [US4] Ensure the most recent age result is held in `Dashboard` component state and remains visible until a new age analysis or unmount/logout, and is discarded on logout (inaccessible without re-authentication) in `frontend/src/pages/Dashboard.tsx` (FR-010/SC-007/SC-015). (Depends on T017.)
 
 **Checkpoint**: Dashboard age UI complete — accessible, independent, and persistent-visible per PRD §6.4/§10.
 
@@ -159,9 +153,9 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 ### Tests for User Story 5
 
-- [ ] T031 [P] [US5] Add the SC-011 contract-violation check as a parametrized contract test in `backend/tests/contract/test_age_contracts.py` (assert a deliberate rename of `estimatedAge` / a broken invariant causes a failure — documented via a skipped-by-default marker that the demo un-skips to prove the guard fires).
-- [ ] T032 [P] [US5] Add a mood regression test run to `backend/tests/integration/test_age_analysis.py` (or a shared conftest marker) ensuring `tests/integration/test_mood_analysis.py` still passes alongside the age suite (FR-020/SC-017).
-- [ ] T033 [US5] Harden the `backend/tests/domain/test_domain_purity.py` assertion for `age.py` (remove the foundational-phase skip added in T009) now that `age.py` exists — assert zero imports of FastAPI/Pillow/SQLAlchemy/ML/`adapters`/`api` (FR-015/SC-009). (Depends on T013.)
+- [X] T031 [P] [US5] Add the SC-011 contract-violation check as a parametrized contract test in `backend/tests/contract/test_age_contracts.py` (assert a deliberate rename of `estimatedAge` / a broken invariant causes a failure — documented via a skipped-by-default marker that the demo un-skips to prove the guard fires).
+- [X] T032 [P] [US5] Add a mood regression test run to `backend/tests/integration/test_age_analysis.py` (or a shared conftest marker) ensuring `tests/integration/test_mood_analysis.py` still passes alongside the age suite (FR-020/SC-017).
+- [X] T033 [US5] Harden the `backend/tests/domain/test_domain_purity.py` assertion for `age.py` (remove the foundational-phase skip added in T009) now that `age.py` exists — assert zero imports of FastAPI/Pillow/SQLAlchemy/ML/`adapters`/`api` (FR-015/SC-009). (Depends on T013.)
 
 **Checkpoint**: Green, reproducible age test foundation; mood regression guarded; domain purity enforced.
 
@@ -171,11 +165,11 @@ description: "Task list for Age Estimation (Fase 4 — age) implementation"
 
 **Purpose**: Improvements that affect multiple user stories and final validation.
 
-- [ ] T034 [P] Update `backend/tests/contract/test_http_contracts.py` to exercise the real age logic (supersede the spec 001 stub assertions for age — the contract evolution noted in plan.md).
-- [ ] T035 [P] Verify no image / embedding / estimated age / range appears in application logs — only `duration_ms` / `status` / `error_code` (FR-019/SC-013) via a logging assertion in `backend/tests/integration/test_age_analysis.py`.
-- [ ] T036 [P] Code cleanup: remove any dead stub remnants from the spec 001 age handler, ensure `_AGE_ERROR_MAP` messages match `contracts/analysis-age.md` verbatim, and confirm `AgeResponse.range` is `AgeRange` everywhere.
-- [ ] T037 Run `quickstart.md` validation end-to-end: `docker compose up --build` + the backend/frontend test commands + the manual walkthrough (specs/005-age-analysis/quickstart.md).
-- [ ] T038 [P] Documentation: update any inline OpenAPI description for `POST /api/analysis/age` to reflect the real contract (supersedes spec 001 stub).
+- [X] T034 [P] Update `backend/tests/contract/test_http_contracts.py` to exercise the real age logic (supersede the spec 001 stub assertions for age — the contract evolution noted in plan.md).
+- [X] T035 [P] Verify no image / embedding / estimated age / range appears in application logs — only `duration_ms` / `status` / `error_code` (FR-019/SC-013) via a logging assertion in `backend/tests/integration/test_age_analysis.py`.
+- [X] T036 [P] Code cleanup: remove any dead stub remnants from the spec 001 age handler, ensure `_AGE_ERROR_MAP` messages match `contracts/analysis-age.md` verbatim, and confirm `AgeResponse.range` is `AgeRange` everywhere.
+- [X] T037 Run `quickstart.md` validation end-to-end: `docker compose up --build` + the backend/frontend test commands + the manual walkthrough (specs/005-age-analysis/quickstart.md).
+- [X] T038 [P] Documentation: update any inline OpenAPI description for `POST /api/analysis/age` to reflect the real contract (supersedes spec 001 stub).
 
 **Checkpoint**: Age feature complete, tested, and validated against `quickstart.md`.
 
@@ -280,5 +274,4 @@ With multiple developers and the foundational phase complete:
 - The route handler (`analysis.py`) and the dashboard (`Dashboard.tsx`) are built incrementally across US1→US4 — coordinate merges on these two files.
 - Verify tests fail before implementing (TDD).
 - Commit after each task or logical group.
-- **Implementation is PENDING** — these tasks are implementation-ready but deliberately not executed in this session (reserved for a live SDD demo).
 - Avoid: vague tasks, same-file parallel conflicts, cross-story dependencies that break independence.

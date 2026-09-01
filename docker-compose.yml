@@ -24,16 +24,18 @@ services:
       postgres:
         condition: service_healthy
     environment:
+      APP_MODE: "production"
       DATABASE_URL: "postgresql+asyncpg://faceinsight:faceinsight@postgres:5432/faceinsight"
-      VERIFICATION_THRESHOLD: "0.5"
+      VERIFICATION_THRESHOLD: "0.363"
       PYTHONPATH: "/app/src"
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
       - ./usuarios:/app/usuarios:rw
+      - ./models:/app/models:rw
     command: >
-      sh -c "alembic upgrade head &&
+      sh -c "if [ \"$APP_MODE\" = \"production\" ]; then alembic upgrade head; fi &&
              uvicorn face_insight.main:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:

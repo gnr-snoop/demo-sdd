@@ -4,7 +4,7 @@ Every mock returns hardcoded constant outputs — no RNG, no seed, no clock
 (research R-5). Re-exported here for convenient wiring.
 """
 
-from .age_estimator import MockAgeEstimator
+from .age_estimator import MockAgeEstimator, ScriptableMockAgeEstimator
 from .constants import FIXED_USER_ID
 from .detector import MockDetector, ScriptableMockDetector
 from .embedder import MockEmbedder, ScriptableMockEmbedder
@@ -17,6 +17,7 @@ from .unit_of_work import MockUnitOfWork
 
 __all__ = [
     "MockAgeEstimator",
+    "ScriptableMockAgeEstimator",
     "MockDetector",
     "ScriptableMockDetector",
     "MockEmbedder",

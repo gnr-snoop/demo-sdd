@@ -47,6 +47,16 @@ SPEC_004_DOMAIN_MODULES = {
     "mood.py",
 }
 
+# Spec 005 (T009): new domain module that MUST exist and be pure. ``age.py``
+# holds the AgeService use-case + normalize_age_result and must import only
+# ports/result types/exceptions/stdlib (FR-015/SC-009). The parametrize purity
+# sweep covers it automatically once it exists; this set asserts existence
+# (hardened in T033 after T013 creates the module — the existence test below
+# skips gracefully during the foundational phase if the file is absent).
+SPEC_005_DOMAIN_MODULES = {
+    "age.py",
+}
+
 FORBIDDEN_PREFIXES = (
     "face_insight.adapters",
     "face_insight.api",
@@ -62,7 +72,14 @@ FORBIDDEN_PREFIXES = (
     "cv2",
     "opencv",
     "numpy",
+    "onnxruntime",  # Spec 008 (FR-013/R-10): ML runtime must not leak into domain.
     "PIL",
+    # Spec 009 (FR-012/R-9): mood/age ML runtimes must not leak into domain.
+    "timm",
+    "hsemotion",
+    "hsemotion_onnx",
+    "emotiefflib",
+    "mivolo",
 )
 
 # Real ML model libraries — must never be imported by the domain (F-004).
@@ -73,9 +90,16 @@ REAL_ML_PREFIXES = (
     "cv2",
     "opencv",
     "numpy",
+    "onnxruntime",  # Spec 008 (FR-013): ONNX Runtime must not leak into domain.
     "insightface",
     "facenet_pytorch",
     "dlib",
+    # Spec 009 (FR-012/R-9): mood/age ML runtimes.
+    "timm",
+    "hsemotion",
+    "hsemotion_onnx",
+    "emotiefflib",
+    "mivolo",
 )
 
 
@@ -106,6 +130,14 @@ def test_spec_003_domain_module_exists(module: str):
 def test_spec_004_domain_module_exists(module: str):
     """T008: the new spec 004 domain module (mood.py) exists and is covered by
     the purity gate (FR-015/SC-009 — port-only deps)."""
+    assert (DOMAIN_DIR / module).is_file(), f"missing domain module: {module}"
+
+
+@pytest.mark.parametrize("module", sorted(SPEC_005_DOMAIN_MODULES))
+def test_spec_005_domain_module_exists(module: str):
+    """T033: the spec 005 domain module (age.py) exists and is covered by the
+    purity gate (FR-015/SC-009 — port-only deps). Now that age.py exists (T013),
+    this is a hard assertion (the foundational-phase skip from T009 is removed)."""
     assert (DOMAIN_DIR / module).is_file(), f"missing domain module: {module}"
 
 

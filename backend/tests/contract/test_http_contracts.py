@@ -283,13 +283,43 @@ async def test_analysis_mood_happy_path_real_logic(client, app):
     assert body["disclaimer"] == MOOD_DISCLAIMER
 
 
-# --- POST /api/analysis/age (spec 003 — 401 without a valid cookie) --------
+# --- POST /api/analysis/age (spec 005 — real logic) ------------------------
 @pytest.mark.asyncio
 async def test_analysis_age_without_session_401(client):
     files = {"image": ("test.jpg", JPEG_BYTES, "image/jpeg")}
     resp = await client.post("/api/analysis/age", files=files)
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "unauthenticated"
+
+
+@pytest.mark.asyncio
+async def test_analysis_age_happy_path_real_logic(client, app):
+    """Spec 005 (T034): age endpoint exercises real orchestration (supersedes
+    the spec 001 stub). Seed + login → POST /api/analysis/age → 200 with the
+    real {estimatedAge, range:{min,max}, disclaimer} shape; invariants hold."""
+    from tests.conftest import fixture_bytes, seed_user_template
+
+    await seed_user_template(app)
+    files = {"image": ("one_face.jpg", fixture_bytes("one_face.jpg"), "image/jpeg")}
+    login = await client.post(
+        "/api/auth/face-login", data={"identifier": "demo@example.com"}, files=files
+    )
+    assert login.status_code == 200, login.text
+    resp = await client.post("/api/analysis/age", files=files)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert set(body.keys()) == {"estimatedAge", "range", "disclaimer"}, body
+    assert set(body["range"].keys()) == {"min", "max"}
+    # MockAgeEstimator default: estimatedAge 32, range [27,37].
+    assert body["estimatedAge"] == 32
+    assert body["range"] == {"min": 27, "max": 37}
+    assert body["disclaimer"] == AGE_DISCLAIMER
+    # Integer/range invariants (FR-004).
+    assert isinstance(body["estimatedAge"], int)
+    assert isinstance(body["range"]["min"], int)
+    assert isinstance(body["range"]["max"], int)
+    assert body["range"]["min"] >= 0
+    assert body["range"]["min"] <= body["estimatedAge"] <= body["range"]["max"]
 
 
 # --- DELETE /api/users/{userId}/face-data (spec 003 — 401 without cookie) --

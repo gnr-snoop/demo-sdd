@@ -1,7 +1,5 @@
 # Feature Specification: Age Estimation from Authenticated Dashboard (Fase 4 — age)
 
-> **IMPLEMENTATION STATUS: PENDING — This spec is fully documented but intentionally NOT implemented. It is reserved for a live SDD demo. The tasks.md is implementation-ready.**
-
 **Feature Branch**: `005-age-analysis`
 
 **Created**: 2026-08-31

@@ -70,9 +70,17 @@ class MoodResponse(BaseModel):
 
 
 # --- Analysis: age (POST /api/analysis/age) --------------------------------
+# Spec 005 (T005, R-12): dedicated AgeRange schema (distinct from MoodRange so
+# the age and mood contracts can evolve independently). AgeResponse.range uses
+# AgeRange; the disclaimer is the exact PRD §8 string (FR-003).
+class AgeRange(BaseModel):
+    min: int
+    max: int
+
+
 class AgeResponse(BaseModel):
     estimatedAge: int
-    range: MoodRange
+    range: AgeRange
     disclaimer: str
 
 

@@ -1,26 +1,30 @@
-// Dashboard page — mood analysis UI (spec 004, T027, FR-008..FR-013/FR-019).
+// Dashboard page — mood + age analysis UI (spec 004 + spec 005).
 //
 // Camera preview acquired on mount, released on unmount (FR-012b). The mood
-// button ("Detectar estado de ánimo") captures a single still from the live
-// preview and POSTs it to /api/analysis/mood. While in flight the button is
-// disabled — one capture at a time, no server-side lock (FR-014). The mood
-// result (label + optional ≈NN% + disclaimer) stays visible until a new
-// analysis or unmount/logout (FR-010). Recoverable errors show an actionable
-// surface with retry (FR-011/FR-015). Camera-permission denial shows an
-// actionable surface with retry and makes no backend call (FR-012c). The
-// "Calcular edad" button is present but disabled ("Próximamente" — spec 005,
-// FR-013). "Cerrar sesión" is reused from spec 003.
+// button ("Detectar estado de ánimo") and age button ("Calcular edad") each
+// capture a single still from the live preview and POST to their respective
+// /api/analysis/* endpoint. FR-014 shared capture mutex: while either analysis
+// is in flight, BOTH buttons (and the camera capture trigger) are disabled and
+// a second press of either is ignored — one capture at a time across the
+// dashboard (anyAnalysisInFlight = mood.isProcessing || age.isProcessing).
+// Each hook retains independent loading/result/error state surfaces (PRD §6.4).
+// Results stay visible until a new analysis or unmount/logout (FR-010).
+// Recoverable errors show an actionable surface with retry (FR-011/FR-015).
+// Camera-permission denial shows an actionable surface with retry and makes no
+// backend call (FR-012c). "Cerrar sesión" is reused from spec 003.
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import CameraCapture from "../components/CameraCapture";
+import CameraCapture, { CameraCaptureHandle } from "../components/CameraCapture";
 import Nav from "../components/Nav";
 import { useSession } from "../context/SessionContext";
+import { useAgeMachine } from "../hooks/useAgeMachine";
 import { useMoodMachine } from "../hooks/useMoodMachine";
-import { api, MoodResponse } from "../services/api";
+import { api, AgeResponse, MoodResponse } from "../services/api";
 
 const MOOD_BUTTON_LABEL = "Detectar estado de ánimo";
+const AGE_BUTTON_LABEL = "Calcular edad";
 const DELETE_BUTTON_LABEL = "Eliminar mis datos";
 const DELETE_CONFIRM_MESSAGE =
   "Esta acción eliminará tu perfil y plantilla facial de forma permanente. ¿Continuar?";
@@ -37,13 +41,22 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { logout, clearSession, userId } = useSession();
   const mood = useMoodMachine();
+  const age = useAgeMachine();
   // Whether the camera stream is live (permission granted). Acquired on mount
   // via CameraCapture; released on unmount (FR-012b).
   const [cameraReady, setCameraReady] = useState(false);
+  const cameraRef = useRef<CameraCaptureHandle>(null);
 
   // Spec 006 (T022/T023): deletion UI state.
   const [deleteState, setDeleteState] = useState<DeleteState>("idle");
   const [deleteError, setDeleteError] = useState<string>("");
+
+  // FR-014 shared capture mutex: one capture at a time across the dashboard.
+  const anyAnalysisInFlight = mood.isProcessing || age.isProcessing;
+
+  // Tracks which analysis a capture should feed (mood vs age). The CameraCapture
+  // has a single onCapture callback; this ref routes the captured blob.
+  const pendingCaptureRef = useRef<"mood" | "age">("mood");
 
   const handleLogout = async () => {
     await logout();
@@ -56,33 +69,64 @@ const Dashboard: React.FC = () => {
 
   const handlePermissionDenied = useCallback(() => {
     setCameraReady(false);
-    // FR-012c: camera permission denied → actionable mood error surface + retry,
-    // no backend call.
+    // FR-012c: camera permission denied → actionable error surfaces + retry,
+    // no backend call. Both mood and age surfaces show the camera-unavailable
+    // state (the camera is shared).
     mood.send({ type: "CAMERA_DENIED" });
-  }, [mood]);
+    age.send({ type: "CAMERA_DENIED" });
+  }, [mood, age]);
 
+  // Single onCapture handler routed by pendingCaptureRef. The CameraCapture's
+  // built-in button is the mood button; the age button triggers capture via the
+  // ref after setting pendingCaptureRef to "age".
   const handleCapture = useCallback(
     async (blob: Blob) => {
-      // FR-014: one capture at a time — transition to processing (button disables).
-      mood.send({ type: "CAPTURE" });
+      const which = pendingCaptureRef.current;
+      pendingCaptureRef.current = "mood"; // reset to default
+      const machine = which === "age" ? age : mood;
+      machine.send({ type: "CAPTURE" });
       try {
-        const result: MoodResponse = await api.analysisMood(blob);
-        mood.send({ type: "SUCCEEDED", result });
+        if (which === "age") {
+          const result: AgeResponse = await api.analysisAge(blob);
+          age.send({ type: "SUCCEEDED", result });
+        } else {
+          const result: MoodResponse = await api.analysisMood(blob);
+          mood.send({ type: "SUCCEEDED", result });
+        }
       } catch (err) {
-        // AuthApiError / OnboardingApiError carry code + message.
         const code = (err as { code?: string })?.code ?? "internal_error";
         const message =
           (err as { message?: string })?.message ??
           "Ocurrió un error inesperado. Inténtalo de nuevo.";
-        mood.send({ type: "FAILED", code, message });
+        // AC-008 US3 scenario 5: in-flight 401 → discard partial result,
+        // transition to unauthenticated (redirect to /login).
+        if (code === "unauthenticated") {
+          machine.send({ type: "FAILED", code, message });
+          clearSession();
+          navigate("/login", { replace: true });
+          return;
+        }
+        machine.send({ type: "FAILED", code, message });
       }
     },
-    [mood],
+    [mood, age, clearSession, navigate],
   );
 
-  const handleRetry = useCallback(() => {
+  const handleMoodRetry = useCallback(() => {
     mood.send({ type: "RETRY" });
   }, [mood]);
+
+  const handleAgeRetry = useCallback(() => {
+    age.send({ type: "RETRY" });
+  }, [age]);
+
+  // Age button press: route the next capture to the age flow, then trigger a
+  // still from the shared camera preview (FR-013).
+  const handleAgeButtonClick = useCallback(() => {
+    if (anyAnalysisInFlight) return; // FR-014: ignore while in flight
+    pendingCaptureRef.current = "age";
+    cameraRef.current?.capture();
+  }, [anyAnalysisInFlight]);
 
   // --- Spec 006 deletion handlers (T022/T023, research R-7/R-9) ---
   const handleDeleteClick = useCallback(() => {
@@ -106,6 +150,7 @@ const Dashboard: React.FC = () => {
       // results, and navigate to "/" (welcome page). Navigating away unmounts
       // the Dashboard → CameraCapture unmounts → camera stream released.
       mood.reset();
+      age.reset();
       clearSession();
       navigate("/", { replace: true });
     } catch (err) {
@@ -124,7 +169,7 @@ const Dashboard: React.FC = () => {
       setDeleteError(message);
       setDeleteState("error");
     }
-  }, [userId, mood, clearSession, navigate]);
+  }, [userId, mood, age, clearSession, navigate]);
 
   const handleDeleteConfirm = useCallback(() => {
     void performDeletion();
@@ -139,6 +184,11 @@ const Dashboard: React.FC = () => {
   const confidenceLabel = mood.result ? formatConfidence(mood.result.confidence) : null;
   const deleteBusy = deleteState === "processing" || deleteState === "confirming";
 
+  // Age result rendering (FR-012a): range "min–max años" + point "≈NN años".
+  // When min == max (narrow range), only the point estimate is rendered.
+  const ageResult = age.result;
+  const ageNarrow = ageResult && ageResult.range.min === ageResult.range.max;
+
   return (
     <div>
       <Nav />
@@ -150,13 +200,17 @@ const Dashboard: React.FC = () => {
           </p>
         )}
 
-        {/* Camera preview — acquired on mount, released on unmount (FR-012b). */}
+        {/* Camera preview — acquired on mount, released on unmount (FR-012b).
+            The built-in capture button is the mood button; the age button
+            triggers capture via the ref. disabled while either analysis is in
+            flight (FR-014 shared capture mutex). */}
         <CameraCapture
+          ref={cameraRef}
           active={true}
           onCapture={handleCapture}
           onPermissionGranted={handlePermissionGranted}
           onPermissionDenied={handlePermissionDenied}
-          disabled={mood.isProcessing}
+          disabled={anyAnalysisInFlight}
           captureButtonLabel={MOOD_BUTTON_LABEL}
           captureButtonAriaLabel={MOOD_BUTTON_LABEL}
           captureButtonTestId="mood-capture-button"
@@ -188,7 +242,7 @@ const Dashboard: React.FC = () => {
             </p>
             <button
               type="button"
-              onClick={handleRetry}
+              onClick={handleMoodRetry}
               aria-label="Reintentar análisis de ánimo"
               data-testid="mood-retry-button"
             >
@@ -206,7 +260,7 @@ const Dashboard: React.FC = () => {
             </p>
             <button
               type="button"
-              onClick={handleRetry}
+              onClick={handleMoodRetry}
               aria-label="Reintentar acceso a la cámara"
               data-testid="mood-camera-retry-button"
             >
@@ -215,17 +269,77 @@ const Dashboard: React.FC = () => {
           </section>
         )}
 
-        {/* Disabled "Calcular edad" placeholder (FR-013 — spec 005). */}
+        {/* --- Age analysis (spec 005, T017/T022/T028) --- */}
+        {/* Enabled "Calcular edad" button (FR-013 — placeholder removed).
+            Keyboard-accessible with a descriptive aria-label. Disabled while
+            either analysis is in flight (FR-014 shared capture mutex). */}
         <div>
           <button
             type="button"
-            disabled
-            aria-label="Calcular edad — próximamente"
+            onClick={handleAgeButtonClick}
+            disabled={anyAnalysisInFlight || !cameraReady}
+            aria-label={AGE_BUTTON_LABEL}
             data-testid="age-button"
           >
-            Calcular edad
+            {AGE_BUTTON_LABEL}
           </button>
-          <span data-testid="age-placeholder">Próximamente</span>
+
+          {/* Independent age loading indicator (FR-008). */}
+          {age.isProcessing && (
+            <p data-testid="age-loading" role="status" aria-live="polite">
+              Calculando edad…
+            </p>
+          )}
+
+          {/* Age result surface — range + point estimate + disclaimer (FR-012a/FR-003).
+              Range rendered as "min–max años"; point as "≈NN años". When the
+              range is narrow (min == max), only the point estimate is rendered. */}
+          {age.state === "result" && ageResult && (
+            <section data-testid="age-result" aria-live="polite">
+              {!ageNarrow && (
+                <p data-testid="age-range">
+                  Edad estimada: <strong>{ageResult.range.min}–{ageResult.range.max} años</strong>
+                </p>
+              )}
+              <p data-testid="age-point">
+                ≈{ageResult.estimatedAge} años
+              </p>
+              <p data-testid="age-disclaimer">{ageResult.disclaimer}</p>
+            </section>
+          )}
+
+          {/* Independent recoverable age error surface + retry (FR-011/FR-015). */}
+          {age.state === "error" && age.error && (
+            <section data-testid="age-error" role="alert" aria-live="assertive">
+              <p data-testid="age-error-message">{age.error.message}</p>
+              <button
+                type="button"
+                onClick={handleAgeRetry}
+                aria-label="Reintentar cálculo de edad"
+                data-testid="age-retry-button"
+              >
+                Reintentar
+              </button>
+            </section>
+          )}
+
+          {/* Age camera-permission-denied surface + retry (FR-012c). */}
+          {age.state === "camera_unavailable" && (
+            <section data-testid="age-camera-error" role="alert" aria-live="assertive">
+              <p>
+                No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a
+                intentarlo.
+              </p>
+              <button
+                type="button"
+                onClick={handleAgeRetry}
+                aria-label="Reintentar acceso a la cámara para edad"
+                data-testid="age-camera-retry-button"
+              >
+                Reintentar
+              </button>
+            </section>
+          )}
         </div>
 
         {/* Spec 006 (T022): "Eliminar mis datos" button + confirmation dialog. */}

@@ -167,7 +167,11 @@ export const api = {
     const resp = await fetch(`${API_BASE_URL}/api/analysis/age`, {
       method: "POST",
       body,
+      credentials: "include", // send the session cookie (spec 003/005)
     });
+    if (!resp.ok) {
+      await parseError(resp);
+    }
     return resp.json();
   },
 

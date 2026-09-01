@@ -39,7 +39,13 @@ class MoodResult:
 @dataclass(frozen=True)
 class AgeResult:
     estimated_age: int
-    range: tuple[int, int]
+    # Spec 005 (T003, data-model.md): widened from `tuple[int, int]` to
+    # `tuple[int, int] | None` to permit a **point-only** port output (the
+    # estimator may return an estimated age without a range). Backward-
+    # compatible (the mock always supplies a range). The `AgeService`
+    # normalization layer guarantees the returned `AgeResult` always has a
+    # non-`None` `range` satisfying the invariants (FR-004).
+    range: tuple[int, int] | None
     model_version: str
 
 

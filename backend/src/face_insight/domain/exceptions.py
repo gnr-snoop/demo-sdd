@@ -62,6 +62,13 @@ class MoodInternalError(OnboardingInternalError):
     (recoverable — FR-007). No mood result is produced."""
 
 
+# --- Age-specific exceptions (spec 005, T004/R-4) --------------------------
+class AgeInternalError(OnboardingInternalError):
+    """Unexpected failure during age analysis (detector/age_estimator port
+    raises, or any other unexpected error). Mapped to ``500 internal_error``
+    (recoverable — FR-007). No age result is produced."""
+
+
 class ComparisonError(OnboardingError):
     """Comparison port failure (e.g. embedding dimension mismatch).
 
@@ -110,6 +117,7 @@ DELETION_INTERNAL_ERROR_MESSAGE = "Ocurrió un error al eliminar tus datos. Int�
 __all__ = [
     "AUTH_FAILED_MESSAGE",
     "UNAUTHENTICATED_MESSAGE",
+    "AgeInternalError",
     "AuthFailed",
     "ComparisonError",
     "DeletionInternalError",

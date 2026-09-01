@@ -21,3 +21,11 @@ dist/
 
 # Editor / OS
 .DS_Store
+
+# Spec 008 (FR-008): ML model cache directory — .onnx files are downloaded
+# at runtime (lazy) or pre-placed; never committed to the repo.
+models/
+
+# Biometric data — user face images (PRD §12 privacy, Constitution Principle V)
+# Never commit: usuarios/<user-id>/pictures.jpg
+usuarios/

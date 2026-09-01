@@ -10,8 +10,9 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
@@ -60,8 +61,195 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("startup")
     yield
     logger.info("shutdown")
+    # Dispose the production DB engine if one was wired (spec 007).
+    engine = getattr(app.state, "db_engine", None)
+    if engine is not None:
+        await engine.dispose()
     if _engine is not None:
         await _engine.dispose()
+
+
+def wire_production_adapters(app: FastAPI) -> None:
+    """Wire real SQLAlchemy DB adapters + mock ML adapters for production mode
+    (spec 007, FR-004/FR-006/FR-008; research R-3/R-4).
+
+    Mirrors ``wire_mock_adapters``'s service-construction structure but:
+      1. Builds the session factory via ``adapters.db.session.get_session_factory()``
+         (async engine + ``async_sessionmaker`` from ``settings.database_url``).
+      2. Instantiates the real ``SqlAlchemy*`` persistence adapters.
+      3. Keeps the **mock ML adapters** (real ML is specs 008/009 — FR-004).
+      4. Uses the real ``FilesystemImageStorage`` (Principle V).
+      5. Rebuilds all services from the real persistence ports + mock ML.
+      6. Runs a startup ``SELECT 1`` probe → ``RuntimeError`` on failure (FR-006).
+      7. Stores the engine on ``app.state.db_engine`` for lifespan/health probe.
+    """
+    from .adapters.db.repositories import (  # noqa: PLC0415
+        SqlAlchemyFaceTemplateRepository,
+        SqlAlchemyUnitOfWork,
+        SqlAlchemyUserRepository,
+    )
+    from .adapters.db.session import get_session_factory  # noqa: PLC0415
+    from .adapters.db.session_manager import SqlAlchemySessionManager  # noqa: PLC0415
+    from .adapters.fs.image_storage import FilesystemImageStorage  # noqa: PLC0415
+    from .adapters.http.session_cookie import SessionCookieService  # noqa: PLC0415
+    from .domain.age import AgeService  # noqa: PLC0415
+    from .domain.comparison import CosineComparison  # noqa: PLC0415
+    from .domain.deletion import DeletionService  # noqa: PLC0415
+    from .domain.login import LoginService  # noqa: PLC0415
+    from .domain.mood import MoodService  # noqa: PLC0415
+    from .domain.onboarding import OnboardingService  # noqa: PLC0415
+    from .logging import get_logger as _get_logger  # noqa: PLC0415
+
+    settings = get_settings()
+
+    # 1. Build the async session factory from DATABASE_URL.
+    session_factory = get_session_factory()
+    engine = session_factory.kw["bind"]  # the AsyncEngine bound to the factory
+
+    # 2. Startup connectivity probe (FR-006, research R-4) — fail fast before
+    #    serving traffic. Use a SEPARATE throwaway engine so the probe's
+    #    connections (bound to a worker-thread event loop) do not contaminate
+    #    the app engine's pool (which must live in the app's own event loop).
+    import asyncio  # noqa: PLC0415
+    import concurrent.futures  # noqa: PLC0415
+    import os  # noqa: PLC0415
+
+    async def _probe() -> bool:
+        from sqlalchemy.ext.asyncio import create_async_engine  # noqa: PLC0415
+
+        probe_engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+        try:
+            async with probe_engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            return True
+        except Exception:  # noqa: BLE001
+            return False
+        finally:
+            await probe_engine.dispose()
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        ready = pool.submit(lambda: asyncio.run(_probe())).result()
+
+    logger.info("db_ready", status=bool(ready))  # FR-016, research R-8
+    if not ready:
+        raise RuntimeError(
+            f"APP_MODE=production requires a reachable DATABASE_URL; got {settings.database_url!r}"
+        )
+
+    # 3. Real persistence adapters.
+    user_repo = SqlAlchemyUserRepository(session_factory)
+    template_repo = SqlAlchemyFaceTemplateRepository(session_factory)
+    session_manager = SqlAlchemySessionManager(session_factory)
+    unit_of_work = SqlAlchemyUnitOfWork(session_factory)
+
+    # 4. Concrete ML adapters (spec 008 + spec 009, FR-011): YuNetDetector +
+    #    SFaceEmbedder (spec 008) + EmotiEffMoodEstimator + MiVOLOAgeEstimator
+    #    (spec 009) replace the mock ML adapters in production. After this, all
+    #    four ML ports have concrete real adapters (Fase 5 complete, SC-018).
+    from .adapters.ml import (  # noqa: PLC0415
+        EmotiEffMoodEstimator,
+        MiVOLOAgeEstimator,
+        SFaceEmbedder,
+        YuNetDetector,
+    )
+
+    detector = YuNetDetector()
+    embedder = SFaceEmbedder()
+    age_estimator = MiVOLOAgeEstimator()
+    mood_estimator = EmotiEffMoodEstimator()
+
+    # 4b. Production-mode verification_threshold override (spec 008, FR-016, R-7):
+    #     default 0.363 (OpenCV LFW calibration) unless VERIFICATION_THRESHOLD
+    #     is explicitly set in the environment. Mock-mode default stays 0.5.
+    verification_threshold = settings.verification_threshold
+    if "VERIFICATION_THRESHOLD" not in os.environ:
+        from .adapters.ml.constants import PRODUCTION_VERIFICATION_THRESHOLD  # noqa: PLC0415
+
+        verification_threshold = PRODUCTION_VERIFICATION_THRESHOLD
+        logger.info(
+            "verification_threshold_override",
+            mode="production",
+            value=verification_threshold,
+            source="opencv_lfw_calibration",
+        )
+
+    # 5. Real filesystem image storage (Principle V).
+    image_storage = FilesystemImageStorage()
+
+    # 6. Attach to app.state.
+    app.state.detector = detector
+    app.state.embedder = embedder
+    app.state.age_estimator = age_estimator
+    app.state.mood_estimator = mood_estimator
+    app.state.session_manager = session_manager
+    app.state.user_repository = user_repo
+    app.state.face_template_repository = template_repo
+    app.state.image_storage = image_storage
+    app.state.unit_of_work = unit_of_work
+    app.state.db_engine = engine
+
+    # 7. Rebuild services from the real persistence ports + mock ML.
+    app.state.onboarding_service = OnboardingService(
+        detector=detector,
+        embedder=embedder,
+        user_repository=user_repo,
+        face_template_repository=template_repo,
+        image_storage=image_storage,
+        quality_threshold=settings.quality_threshold,
+        embedding_model_version=settings.embedding_model_version,
+    )
+
+    app.state.comparison = CosineComparison()
+    app.state.session_cookie_service = SessionCookieService(settings)
+    app.state.login_service = LoginService(
+        detector=detector,
+        embedder=embedder,
+        comparison=app.state.comparison,
+        user_repository=user_repo,
+        face_template_repository=template_repo,
+        session_manager=session_manager,
+        quality_threshold=settings.quality_threshold,
+        verification_threshold=verification_threshold,
+    )
+
+    app.state.mood_service = MoodService(
+        detector=detector,
+        mood_estimator=mood_estimator,
+        quality_threshold=settings.quality_threshold,
+    )
+
+    app.state.age_service = AgeService(
+        detector=detector,
+        age_estimator=age_estimator,
+        quality_threshold=settings.quality_threshold,
+        age_range_half_width_years=settings.age_range_half_width_years,
+    )
+
+    app.state.deletion_service = DeletionService(
+        user_repository=user_repo,
+        image_storage=image_storage,
+        delete_user_face_data=unit_of_work.delete_user_face_data,
+        logger=_get_logger("face_insight.deletion"),
+    )
+
+
+def select_wiring(app: FastAPI, app_mode: str) -> None:
+    """Dispatch to the correct wiring function exactly once at composition
+    time (spec 007, FR-002; research R-2).
+
+    ``mock`` → ``wire_mock_adapters``; ``production`` → ``wire_production_adapters``.
+    Called once from ``create_app()`` after ``register_routes(app)``.
+    """
+    logger.info("wiring_selected", app_mode=app_mode)  # FR-016, research R-8
+    if app_mode == "mock":
+        wire_mock_adapters(app)
+    elif app_mode == "production":
+        wire_production_adapters(app)
+    else:
+        # Defensive: Settings validation should have caught this already (FR-005).
+        raise ValueError(
+            f"APP_MODE must be 'production' or 'mock'; got '{app_mode}'"
+        )
 
 
 def wire_mock_adapters(app: FastAPI) -> None:
@@ -106,6 +294,8 @@ def wire_mock_adapters(app: FastAPI) -> None:
     app.state.user_repository = MockUserRepository()
     app.state.face_template_repository = MockFaceTemplateRepository()
     app.state.image_storage = MockImageStorage()
+    # Mock mode requires no DB — explicitly unset (spec 007, FR-003/FR-012).
+    app.state.db_engine = None
 
     app.state.onboarding_service = OnboardingService(
         detector=app.state.detector,
@@ -138,6 +328,18 @@ def wire_mock_adapters(app: FastAPI) -> None:
         detector=app.state.detector,
         mood_estimator=app.state.mood_estimator,
         quality_threshold=settings.quality_threshold,
+    )
+
+    # Spec 005 age wiring (T008b): AgeService from mock ports. Built from the
+    # mock Detector + mock AgeEstimator + settings.age_range_half_width_years
+    # (FR-004). Real age models are deferred to Fase 5 (FR-016).
+    from .domain.age import AgeService  # noqa: PLC0415
+
+    app.state.age_service = AgeService(
+        detector=app.state.detector,
+        age_estimator=app.state.age_estimator,
+        quality_threshold=settings.quality_threshold,
+        age_range_half_width_years=settings.age_range_half_width_years,
     )
 
     # Spec 006 deletion wiring (T010): DeletionService from the mock ports + a
@@ -173,7 +375,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     register_routes(app)
-    wire_mock_adapters(app)
+    # Spec 007 (T010, FR-002): dispatch to mock/production wiring once at
+    # composition time via the selector, replacing the unconditional
+    # ``wire_mock_adapters(app)`` call.
+    select_wiring(app, get_settings().app_mode)
 
     @app.exception_handler(UnauthenticatedError)
     async def _unauthenticated_handler(_request, _exc):  # noqa: ANN001
@@ -182,19 +387,48 @@ def create_app() -> FastAPI:
     register_deletion_exception_handlers(app)
 
     @app.get("/health", tags=["infra"])
-    async def health() -> dict[str, str]:
-        """Liveness probe."""
-        return {"status": "healthy"}
+    async def health(request: Request) -> JSONResponse:
+        """Liveness probe — mode-aware (spec 007, T015, FR-010, research R-6).
+
+        mock → ``{"status":"healthy"}`` (no DB check); production →
+        ``{"status":"healthy","db":true}`` with ``SELECT 1`` against
+        ``app.state.db_engine``, 503 ``{"status":"unhealthy","db":false}`` on
+        ping failure.
+        """
+        engine = getattr(request.app.state, "db_engine", None)
+        if engine is None:
+            return JSONResponse(status_code=200, content={"status": "healthy"})
+        db_ok = await _ping_engine(engine)
+        if db_ok:
+            return JSONResponse(status_code=200, content={"status": "healthy", "db": True})
+        return JSONResponse(status_code=503, content={"status": "unhealthy", "db": False})
 
     @app.get("/readyz", tags=["infra"])
-    async def readyz(response: Response) -> dict[str, object]:
-        """Readiness probe — checks DB connectivity (503 if down)."""
-        ready = await db_is_ready()
-        if not ready:
-            response.status_code = 503
-        return {"status": "ready" if ready else "unavailable", "db": ready}
+    async def readyz(request: Request) -> JSONResponse:
+        """Readiness probe — mode-aware (spec 007, T016, FR-010, research R-6).
+
+        mock → ``{"status":"ready","db":null}``; production → ``SELECT 1`` ping
+        with ``db: true|false`` and 503 on failure.
+        """
+        engine = getattr(request.app.state, "db_engine", None)
+        if engine is None:
+            return JSONResponse(status_code=200, content={"status": "ready", "db": None})
+        db_ok = await _ping_engine(engine)
+        if db_ok:
+            return JSONResponse(status_code=200, content={"status": "ready", "db": True})
+        return JSONResponse(status_code=503, content={"status": "unavailable", "db": False})
 
     return app
+
+
+async def _ping_engine(engine: AsyncEngine) -> bool:
+    """Run ``SELECT 1`` against ``engine``; return False on any failure."""
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True
+    except Exception:  # noqa: BLE001 — probe must not crash
+        return False
 
 
 def create_onboarding_app(
@@ -273,6 +507,16 @@ def create_onboarding_app(
         quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
     )
 
+    # Spec 005 (T008b): rebuild age_service with the overridden detector.
+    from .domain.age import AgeService  # noqa: PLC0415
+
+    app.state.age_service = AgeService(
+        detector=detector,
+        age_estimator=app.state.age_estimator,
+        quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+        age_range_half_width_years=settings.age_range_half_width_years,
+    )
+
     # Spec 006 deletion wiring (T010).
     from .domain.deletion import DeletionService  # noqa: PLC0415
     from .logging import get_logger as _get_logger  # noqa: PLC0415
@@ -301,6 +545,7 @@ def create_auth_app(
     quality_threshold: float | None = None,
     verification_threshold: float | None = None,
     mood_estimator: object | None = None,
+    age_estimator: object | None = None,
 ) -> FastAPI:
     """Application factory wired for login/session integration tests (spec 003).
 
@@ -308,6 +553,9 @@ def create_auth_app(
     SQLAlchemy async repositories + ``SqlAlchemySessionManager`` (when
     ``session_factory`` is given), and a real ``SessionCookieService``. Onboarding
     is also wired so tests can seed a User + FaceTemplate via POST /api/onboarding.
+
+    Spec 005 (T008b): ``age_estimator`` optionally overrides the mock age
+    estimator (mirrors ``mood_estimator``) for age integration/contract tests.
     """
     from .adapters.db.repositories import (  # noqa: PLC0415
         SqlAlchemyFaceTemplateRepository,
@@ -393,6 +641,21 @@ def create_auth_app(
         detector=detector,
         mood_estimator=app.state.mood_estimator,
         quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+    )
+
+    # Spec 005 age wiring (T008b): rebuild AgeService with the (overridden)
+    # detector + an optional age_estimator override. The age_estimator defaults
+    # to the mock wired by wire_mock_adapters; tests pass a scriptable variant
+    # via `age_estimator` (mirrors the mood_estimator override above).
+    if age_estimator is not None:
+        app.state.age_estimator = age_estimator
+    from .domain.age import AgeService  # noqa: PLC0415
+
+    app.state.age_service = AgeService(
+        detector=detector,
+        age_estimator=app.state.age_estimator,
+        quality_threshold=settings.quality_threshold if quality_threshold is None else quality_threshold,
+        age_range_half_width_years=settings.age_range_half_width_years,
     )
 
     # Spec 006 deletion wiring (T010): DeletionService + the

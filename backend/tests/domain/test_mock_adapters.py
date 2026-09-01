@@ -55,7 +55,9 @@ def test_mock_age_estimator_deterministic():
     r2 = a.estimate_age(IMAGE)
     assert r1.estimated_age == 32
     assert r1.range == (27, 37)
-    assert r1.model_version == "mock-age-v0"
+    # Spec 005 (T002, FR-017/R-11): mock age estimator version is
+    # "mock-age-estimator-v1" (supersedes the spec 001 placeholder "mock-age-v0").
+    assert r1.model_version == "mock-age-estimator-v1"
     assert r1 == r2
 
 
