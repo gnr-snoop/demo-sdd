@@ -32,7 +32,7 @@ MOOD_DISCLAIMER = (
     "Resultado estimado por un modelo visual. No representa una medición "
     "objetiva del estado emocional."
 )
-VALID_LABELS = {"neutral", "feliz", "triste", "sorprendido", "no concluyente"}
+VALID_LABELS = {"neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"}
 
 
 def fixture_bytes(name: str) -> bytes:

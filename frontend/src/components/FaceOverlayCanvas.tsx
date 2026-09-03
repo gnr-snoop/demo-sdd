@@ -3,7 +3,7 @@
 // This component is not required to be used directly; CameraCapture inlines drawOverlay
 // but this file provides the extracted helper for style-guide alignment and reuse.
 
-import { PreviewDetection } from "../services/previewDetector";
+import { mapPreviewDetectionToDisplay, PreviewDetection } from "../services/previewDetector";
 
 export type FaceOverlayCanvasProps = {
   detections: PreviewDetection[];
@@ -25,23 +25,17 @@ export function drawFaceOverlay(
 ): void {
   ctx.clearRect(0, 0, cssWidth, cssHeight);
   if (detections.length === 0) return;
-  const scaleX = cssWidth / (videoWidth || 640);
-  const scaleY = cssHeight / (videoHeight || 480);
   ctx.strokeStyle = "#00E5CC";
   ctx.lineWidth = 2;
   for (const det of detections) {
-    const x = det.box.x * scaleX;
-    const y = det.box.y * scaleY;
-    const w = det.box.width * scaleX;
-    const h = det.box.height * scaleY;
+    const mapped = mapPreviewDetectionToDisplay(det, videoWidth, videoHeight, cssWidth, cssHeight);
+    const { x, y, width: w, height: h } = mapped.box;
     ctx.strokeRect(x, y, w, h);
-    if (det.landmarks && det.landmarks.length > 0) {
+    if (mapped.landmarks && mapped.landmarks.length > 0) {
       ctx.fillStyle = "#00E5CC";
-      for (const lm of det.landmarks) {
-        const lx = lm.x * scaleX;
-        const ly = lm.y * scaleY;
+      for (const lm of mapped.landmarks) {
         ctx.beginPath();
-        ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+        ctx.arc(lm.x, lm.y, 3, 0, Math.PI * 2);
         ctx.fill();
       }
     }

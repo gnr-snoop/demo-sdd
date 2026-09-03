@@ -18,7 +18,7 @@ This document records the (unchanged) domain value objects the adapters populate
 
 | Field | Type | Source | Notes |
 |-------|------|--------|-------|
-| `label` | `str` | `AFEW_TO_PRD_LABEL_MAP[argmax(softmax)]`, or `"no concluyente"` if top-1 prob < `mood_confidence_threshold` | member of `{neutral, feliz, triste, sorprendido, no concluyente}` (FR-005); domain `normalize_mood_label` is the safety net |
+| `label` | `str` | `AFEW_TO_PRD_LABEL_MAP[argmax(softmax)]`, or `"no concluyente"` if top-1 prob < `mood_confidence_threshold` | member of `{neutral, feliz, triste, sorprendido, enojo, no concluyente}` (FR-005); domain `normalize_mood_label` is the safety net |
 | `confidence` | `float \| None` | softmax top-1 probability | in [0, 1]; domain `_clamp_confidence` is the safety net |
 | `model_version` | `str` | constant `"emotieff-enet-b0-afew-v1"` | distinct from `mock-mood-v1` (FR-003) |
 
@@ -48,12 +48,12 @@ The EmotiEff/HSEmotion model `enet_b0_8_best_afew.onnx` is trained on the AFEW d
 | 1 | Happy | `feliz` |
 | 2 | Sad | `triste` |
 | 3 | Surprise | `sorprendido` |
-| 4 | Anger | `no concluyente` |
+| 4 | Anger | `enojo` |
 | 5 | Disgust | `no concluyente` |
 | 6 | Fear | `no concluyente` |
 | 7 | Contempt | `no concluyente` |
 
-The 4 AFEW emotions with no PRD category (Anger, Disgust, Fear, Contempt) are reported as `no concluyente` — they are surfaced as inconclusive rather than dropped or mislabeled. The domain `normalize_mood_label` (spec 004) remains as a safety net mapping any residual out-of-set label to `no concluyente` (defense-in-depth, FR-005).
+The 3 AFEW emotions with no PRD category (Disgust, Fear, Contempt) are reported as `no concluyente`; Anger is surfaced as `enojo`. The domain `normalize_mood_label` (spec 004) remains as a safety net mapping any residual out-of-set label to `no concluyente` (defense-in-depth, FR-005).
 
 **Low-confidence override (FR-006)**: when the softmax top-1 probability < `mood_confidence_threshold` (default 0.5), the label is set to `no concluyente` regardless of the AFEW class (the low confidence value is still returned).
 
@@ -138,10 +138,10 @@ Mood/age results are transient — never persisted (FR-016, spec 004/005).
 
 ## Validation Rules
 
-- **FR-001**: `EmotiEffMoodEstimator.estimate_mood()` MUST return a `MoodResult` with `label` in `{neutral, feliz, triste, sorprendido, no concluyente}`, `confidence` in [0, 1], and a non-empty `model_version`.
+- **FR-001**: `EmotiEffMoodEstimator.estimate_mood()` MUST return a `MoodResult` with `label` in `{neutral, feliz, triste, sorprendido, enojo, no concluyente}`, `confidence` in [0, 1], and a non-empty `model_version`.
 - **FR-002**: `MiVOLOAgeEstimator.estimate_age()` MUST return an `AgeResult` with a non-negative integer `estimated_age`, `range=None` (point-only), and a non-empty `model_version`.
 - **FR-003**: `model_version` strings (`emotieff-enet-b0-afew-v1`, `mivolo-volo-d1-face-v1`) MUST be fixed and distinct from the mock versions (`mock-mood-v1`, `mock-age-estimator-v1`).
-- **FR-005**: The AFEW→PRD mapping MUST map Neutral→neutral, Happy→feliz, Sad→triste, Surprise→sorprendido, Anger/Disgust/Fear/Contempt→no concluyente.
+- **FR-005**: The AFEW→PRD mapping MUST map Neutral→neutral, Happy→feliz, Sad→triste, Surprise→sorprendido, Anger→enojo, Disgust/Fear/Contempt→no concluyente.
 - **FR-006**: When top-1 softmax probability < `mood_confidence_threshold`, the label MUST be `no concluyente`.
 - **FR-007**: The age adapter MUST return `range=None`; the domain `normalize_age_result` MUST derive a symmetric range with `min >= 0` and `min <= estimated_age <= max` (existing spec 005 invariants — no domain change).
 - **FR-009**: Adapter construction MUST fail fast with an actionable error naming the model if the file cannot be obtained or loaded — before the app serves traffic.

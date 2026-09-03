@@ -152,7 +152,7 @@ def test_different_person_cosine_below_threshold():
 # Mood adapter integration assertions (spec 009, FR-001/FR-005/FR-006, SC-002)
 # ===========================================================================
 _PRD_MOOD_LABELS = frozenset(
-    {"neutral", "feliz", "triste", "sorprendido", "no concluyente"}
+    {"neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"}
 )
 
 

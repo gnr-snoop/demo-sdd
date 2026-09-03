@@ -43,6 +43,7 @@ EMBED_FAIL_MARKER = b"EMBEDFAIL"      # embedder raises → LoginInternalError (
 # ScriptableMockMoodEstimator substring-searches the raw bytes for these markers.
 MOOD_FELIZ_MARKER = b"FELIZ"              # → label "feliz", confidence 0.8
 MOOD_TRISTE_MARKER = b"TRIST"             # → label "triste", confidence 0.7
+MOOD_ENOJO_MARKER = b"ENOJO"              # → label "enojo", confidence 0.75
 MOOD_NO_CONCLUSIVE_MARKER = b"NOCONCLUSIVE"  # → label "no concluyente", confidence 0.3
 MOOD_FAIL_MARKER = b"MOODFAIL"            # estimator raises → MoodInternalError (500)
 MOOD_OUT_OF_SET_MARKER = b"OOSET"         # → out-of-set label "angry" → normalize to "no concluyente"

@@ -35,7 +35,7 @@ The session cookie is sent automatically by the browser (`credentials: "include"
 
 | Field | Type | Required | Validation |
 |-------|------|----------|------------|
-| `label` | string | yes | ∈ `{neutral, feliz, triste, sorprendido, no concluyente}` (FR-004) |
+| `label` | string | yes | ∈ `{neutral, feliz, triste, sorprendido, enojo, no concluyente}` (FR-004) |
 | `confidence` | number \| null | no | `float ∈ [0.0, 1.0]` when present, or `null`/omitted when the estimator does not produce one (FR-012a). The mock returns `0.74` (neutral) / `0.8` (feliz, test fixture). |
 | `disclaimer` | string | yes | Exact fixed string: `"Resultado estimado por un modelo visual. No representa una medición objetiva del estado emocional."` (PRD §8, FR-003 — returned verbatim on every `200`). |
 

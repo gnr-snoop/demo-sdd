@@ -73,7 +73,7 @@ MIVOLO_LICENSE = "Apache-2.0"
 # This ordering is verified at runtime by the F-04 integration assertion
 # (``test_afew_index_order_matches_library``) using a known fixture. The 4 AFEW
 # emotions with no PRD category (Anger, Contempt, Disgust, Fear) are reported as
-# ``"no concluyente"`` rather than dropped or mislabeled (research R-4).
+# ``"no concluyente"`` rather than dropped or mislabeled.
 AFEW_INDEX_TO_EMOTION_NAME = {
     0: "Anger",
     1: "Contempt",
@@ -86,7 +86,7 @@ AFEW_INDEX_TO_EMOTION_NAME = {
 }
 
 AFEW_TO_PRD_LABEL_MAP = {
-    0: "no concluyente",   # Anger    — no PRD category
+    0: "enojo",            # Anger
     1: "no concluyente",   # Contempt — no PRD category
     2: "no concluyente",   # Disgust  — no PRD category
     3: "no concluyente",   # Fear     — no PRD category

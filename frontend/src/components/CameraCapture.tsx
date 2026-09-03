@@ -13,6 +13,7 @@ import {
   PreviewDetector,
   createDefaultPreviewDetector,
   applyHoldSmoothing,
+  mapPreviewDetectionToDisplay,
   OVERLAY_HOLD_MS,
   OVERLAY_MIN_SCORE,
   OVERLAY_SAMPLE_INTERVAL_MS,
@@ -79,9 +80,6 @@ function drawOverlay(
   void mirrored;
   if (detections.length === 0) return;
 
-  const scaleX = cssWidth / (videoWidth || 640);
-  const scaleY = cssHeight / (videoHeight || 480);
-
   // Defensive style assignment: some mocks make these read-only
   try {
     ctx.strokeStyle = "#00E5CC";
@@ -89,25 +87,18 @@ function drawOverlay(
   } catch {}
 
   for (const det of detections) {
-    const x = det.box.x * scaleX;
-    const y = det.box.y * scaleY;
-    const w = det.box.width * scaleX;
-    const h = det.box.height * scaleY;
+    const mapped = mapPreviewDetectionToDisplay(det, videoWidth, videoHeight, cssWidth, cssHeight);
+    const { x, y, width: w, height: h } = mapped.box;
 
-    const drawX = x;
-    const drawW = w;
+    if (typeof ctx.strokeRect === "function") ctx.strokeRect(x, y, w, h);
 
-    if (typeof ctx.strokeRect === "function") ctx.strokeRect(drawX, y, drawW, h);
-
-    if (det.landmarks && det.landmarks.length > 0) {
+    if (mapped.landmarks && mapped.landmarks.length > 0) {
       try {
         ctx.fillStyle = "#00E5CC";
       } catch {}
-      for (const lm of det.landmarks) {
-        const lx = lm.x * scaleX;
-        const ly = lm.y * scaleY;
+      for (const lm of mapped.landmarks) {
         if (typeof ctx.beginPath === "function") ctx.beginPath();
-        if (typeof ctx.arc === "function") ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+        if (typeof ctx.arc === "function") ctx.arc(lm.x, lm.y, 3, 0, Math.PI * 2);
         if (typeof ctx.fill === "function") ctx.fill();
       }
     }
@@ -142,7 +133,7 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(functi
   const videoRef = useRef<HTMLVideoElement>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [streamReady, setStreamReady] = useState(false);
 
@@ -219,9 +210,9 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(functi
     }
   }, [streamReady, showOverlay]);
 
-  // Update cssSize from wrapper bounding box / video metadata
+  // Update cssSize from the stage that actually contains the video/canvas.
   const updateCssSize = useCallback(() => {
-    const el = wrapperRef.current;
+    const el = stageRef.current;
     const video = videoRef.current;
     if (!el || !video) return;
     // Prefer wrapper size; fallback to video client size
@@ -242,7 +233,7 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(functi
   useEffect(() => {
     updateCssSize();
     const video = videoRef.current;
-    const wrapper = wrapperRef.current;
+    const wrapper = stageRef.current;
     const onMeta = () => updateCssSize();
     video?.addEventListener("loadedmetadata", onMeta);
 
@@ -458,41 +449,38 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(functi
   const focusRingStyle: React.CSSProperties = {};
 
   return (
-    <div data-testid="camera-capture" ref={wrapperRef} style={{ position: "relative", maxWidth: "100%" }}>
-      <div style={{ position: "relative", width: "100%" }}>
+    <div className="camera-shell" data-testid="camera-capture">
+      <div className="camera-stage" ref={stageRef}>
         <video
           ref={videoRef}
           data-testid="camera-preview"
           playsInline
           muted
-          style={{
-            maxWidth: "100%",
-            display: streamReady ? "block" : "none",
-            width: "100%",
-            transform: mirrored ? "scaleX(-1)" : undefined,
-          }}
+            className="camera-preview"
+            style={{ display: streamReady ? "block" : "none", transform: mirrored ? "scaleX(-1)" : undefined }}
         />
         {/* Overlay canvas — absolutely positioned over video, pointer-events none, DPR-aware */}
         <canvas
           ref={overlayCanvasRef}
           data-testid="face-overlay"
           aria-hidden="true"
-          style={{
-            position: "absolute",
-            inset: "0",
-            width: "100%",
-            height: "100%",
-            pointerEvents: "none",
-            display: streamReady ? "block" : "none",
-            transform: mirrored ? "scaleX(-1)" : undefined,
-          }}
+           className="camera-overlay"
+           style={{
+             position: "absolute",
+             inset: "0",
+             width: "100%",
+             height: "100%",
+             pointerEvents: "none",
+             display: streamReady ? "block" : "none",
+             transform: mirrored ? "scaleX(-1)" : undefined,
+           }}
         />
       </div>
       {/* Hidden canvas for capture (FR-007: reads video directly) */}
       <canvas ref={captureCanvasRef} style={{ display: "none" }} />
       {/* Capture button + overlay toggle */}
       {active && streamReady && (
-        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", alignItems: "center" }}>
+        <div className="camera-controls">
           <button
             type="button"
             onClick={capture}
@@ -534,7 +522,7 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(functi
       )}
       {/* Non-blocking notice affordance (FR-013) — aria-live polite, dismissible, cleared on valid */}
       {overlayNotice && showOverlay && streamReady && (
-        <div style={{ marginTop: "0.25rem" }}>
+        <div className="camera-notice">
           <span aria-live="polite" data-testid="overlay-notice">
             {overlayNotice}
           </span>
@@ -543,7 +531,7 @@ const CameraCapture = forwardRef<CameraCaptureHandle, CameraCaptureProps>(functi
             onClick={() => setOverlayNotice("")}
             aria-label="Dismiss notice"
             data-testid="overlay-notice-dismiss"
-            style={{ marginLeft: "0.5rem" }}
+              className="button-secondary"
           >
             ×
           </button>

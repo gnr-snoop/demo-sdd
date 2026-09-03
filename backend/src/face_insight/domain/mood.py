@@ -25,7 +25,7 @@ from .result_types import MoodResult
 # The single normative enumeration of valid mood labels. Out-of-set / low-quality
 # port output is normalized to "no concluyente" by ``normalize_mood_label``.
 VALID_LABELS: frozenset[str] = frozenset(
-    {"neutral", "feliz", "triste", "sorprendido", "no concluyente"}
+    {"neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"}
 )
 
 # Normalization target for any out-of-set / low-quality label.
