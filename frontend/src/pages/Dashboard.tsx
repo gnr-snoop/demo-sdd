@@ -190,161 +190,111 @@ const Dashboard: React.FC = () => {
   const ageNarrow = ageResult && ageResult.range.min === ageResult.range.max;
 
   return (
-    <div>
+    <div className="dashboard-shell">
       <Nav />
-      <main>
-        <h1 data-testid="page-dashboard">Dashboard</h1>
-        {userId && (
-          <p>
-            Sesión activa para el usuario: <code>{userId}</code>
-          </p>
-        )}
+      <main className="dashboard-main">
+        <div className="dashboard-content">
+          <section>
+            <header className="dashboard-heading">
+              <div>
+                <h1 data-testid="page-dashboard">Análisis <span>en vivo</span></h1>
+                <p>Telemetría facial y computación biométrica en tiempo real.</p>
+                {userId && <p className="session-caption">Sesión activa: <code>{userId}</code></p>}
+              </div>
+              <span className="status-pill">Sensor activo</span>
+            </header>
 
-        {/* Camera preview — acquired on mount, released on unmount (FR-012b).
-            The built-in capture button is the mood button; the age button
-            triggers capture via the ref. disabled while either analysis is in
-            flight (FR-014 shared capture mutex). */}
-        <CameraCapture
-          ref={cameraRef}
-          active={true}
-          onCapture={handleCapture}
-          onPermissionGranted={handlePermissionGranted}
-          onPermissionDenied={handlePermissionDenied}
-          disabled={anyAnalysisInFlight}
-          captureButtonLabel={MOOD_BUTTON_LABEL}
-          captureButtonAriaLabel={MOOD_BUTTON_LABEL}
-          captureButtonTestId="mood-capture-button"
-        />
+            <div className="result-card dashboard-camera-card">
+              <CameraCapture
+                ref={cameraRef}
+                active={true}
+                onCapture={handleCapture}
+                onPermissionGranted={handlePermissionGranted}
+                onPermissionDenied={handlePermissionDenied}
+                disabled={anyAnalysisInFlight}
+                captureButtonLabel={MOOD_BUTTON_LABEL}
+                captureButtonAriaLabel={MOOD_BUTTON_LABEL}
+                captureButtonTestId="mood-capture-button"
+              />
+            </div>
 
-        {/* Independent mood loading indicator (FR-008). */}
-        {mood.isProcessing && (
-          <p data-testid="mood-loading" role="status" aria-live="polite">
-            Analizando estado de ánimo…
-          </p>
-        )}
-
-        {/* Mood result surface — label + optional ≈NN% + disclaimer (FR-003/FR-012a). */}
-        {mood.state === "result" && mood.result && (
-          <section data-testid="mood-result" aria-live="polite">
-            <p data-testid="mood-label">
-              Estado de ánimo: <strong>{mood.result.label}</strong>
-              {confidenceLabel && <span data-testid="mood-confidence"> {confidenceLabel}</span>}
-            </p>
-            <p data-testid="mood-disclaimer">{mood.result.disclaimer}</p>
-          </section>
-        )}
-
-        {/* Independent recoverable mood error surface + retry (FR-011/FR-015). */}
-        {mood.state === "error" && mood.error && (
-          <section data-testid="mood-error" role="alert" aria-live="assertive">
-            <p>
-              {mood.error.message}
-            </p>
-            <button
-              type="button"
-              onClick={handleMoodRetry}
-              aria-label="Reintentar análisis de ánimo"
-              data-testid="mood-retry-button"
-            >
-              Reintentar
-            </button>
-          </section>
-        )}
-
-        {/* Camera-permission-denied error surface + retry (FR-012c). */}
-        {mood.state === "camera_unavailable" && (
-          <section data-testid="mood-camera-error" role="alert" aria-live="assertive">
-            <p>
-              No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a
-              intentarlo.
-            </p>
-            <button
-              type="button"
-              onClick={handleMoodRetry}
-              aria-label="Reintentar acceso a la cámara"
-              data-testid="mood-camera-retry-button"
-            >
-              Reintentar
-            </button>
-          </section>
-        )}
-
-        {/* --- Age analysis (spec 005, T017/T022/T028) --- */}
-        {/* Enabled "Calcular edad" button (FR-013 — placeholder removed).
-            Keyboard-accessible with a descriptive aria-label. Disabled while
-            either analysis is in flight (FR-014 shared capture mutex). */}
-        <div>
-          <button
-            type="button"
-            onClick={handleAgeButtonClick}
-            disabled={anyAnalysisInFlight || !cameraReady}
-            aria-label={AGE_BUTTON_LABEL}
-            data-testid="age-button"
-          >
-            {AGE_BUTTON_LABEL}
-          </button>
-
-          {/* Independent age loading indicator (FR-008). */}
-          {age.isProcessing && (
-            <p data-testid="age-loading" role="status" aria-live="polite">
-              Calculando edad…
-            </p>
-          )}
-
-          {/* Age result surface — range + point estimate + disclaimer (FR-012a/FR-003).
-              Range rendered as "min–max años"; point as "≈NN años". When the
-              range is narrow (min == max), only the point estimate is rendered. */}
-          {age.state === "result" && ageResult && (
-            <section data-testid="age-result" aria-live="polite">
-              {!ageNarrow && (
-                <p data-testid="age-range">
-                  Edad estimada: <strong>{ageResult.range.min}–{ageResult.range.max} años</strong>
-                </p>
-              )}
-              <p data-testid="age-point">
-                ≈{ageResult.estimatedAge} años
-              </p>
-              <p data-testid="age-disclaimer">{ageResult.disclaimer}</p>
-            </section>
-          )}
-
-          {/* Independent recoverable age error surface + retry (FR-011/FR-015). */}
-          {age.state === "error" && age.error && (
-            <section data-testid="age-error" role="alert" aria-live="assertive">
-              <p data-testid="age-error-message">{age.error.message}</p>
-              <button
-                type="button"
-                onClick={handleAgeRetry}
-                aria-label="Reintentar cálculo de edad"
-                data-testid="age-retry-button"
-              >
-                Reintentar
+            <div className="dashboard-actions">
+              <button className="button-primary" type="button" onClick={handleAgeButtonClick} disabled={anyAnalysisInFlight || !cameraReady} aria-label={AGE_BUTTON_LABEL} data-testid="age-button">
+                <span className="material-symbols-outlined" aria-hidden="true">cake</span>
+                {AGE_BUTTON_LABEL}
               </button>
-            </section>
-          )}
+            </div>
 
-          {/* Age camera-permission-denied surface + retry (FR-012c). */}
-          {age.state === "camera_unavailable" && (
-            <section data-testid="age-camera-error" role="alert" aria-live="assertive">
-              <p>
-                No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a
-                intentarlo.
-              </p>
-              <button
-                type="button"
-                onClick={handleAgeRetry}
-                aria-label="Reintentar acceso a la cámara para edad"
-                data-testid="age-camera-retry-button"
-              >
-                Reintentar
-              </button>
-            </section>
-          )}
+            {mood.isProcessing && <p className="state-surface" data-testid="mood-loading" role="status" aria-live="polite">Analizando estado de ánimo…</p>}
+            {age.isProcessing && <p className="state-surface" data-testid="age-loading" role="status" aria-live="polite">Calculando edad…</p>}
+            {mood.state === "error" && mood.error && (
+              <section className="state-surface" data-testid="mood-error" role="alert" aria-live="assertive">
+                <p>{mood.error.message}</p>
+                <button className="button-secondary" type="button" onClick={handleMoodRetry} aria-label="Reintentar análisis de ánimo" data-testid="mood-retry-button">Reintentar</button>
+              </section>
+            )}
+            {mood.state === "camera_unavailable" && (
+              <section className="state-surface" data-testid="mood-camera-error" role="alert" aria-live="assertive">
+                <p>No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a intentarlo.</p>
+                <button className="button-secondary" type="button" onClick={handleMoodRetry} aria-label="Reintentar acceso a la cámara" data-testid="mood-camera-retry-button">Reintentar</button>
+              </section>
+            )}
+            {age.state === "error" && age.error && (
+              <section className="state-surface" data-testid="age-error" role="alert" aria-live="assertive">
+                <p data-testid="age-error-message">{age.error.message}</p>
+                <button className="button-secondary" type="button" onClick={handleAgeRetry} aria-label="Reintentar cálculo de edad" data-testid="age-retry-button">Reintentar</button>
+              </section>
+            )}
+            {age.state === "camera_unavailable" && (
+              <section className="state-surface" data-testid="age-camera-error" role="alert" aria-live="assertive">
+                <p>No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a intentarlo.</p>
+                <button className="button-secondary" type="button" onClick={handleAgeRetry} aria-label="Reintentar acceso a la cámara para edad" data-testid="age-camera-retry-button">Reintentar</button>
+              </section>
+            )}
+          </section>
+
+          <aside className="results-column">
+            <header className="dashboard-heading">
+              <div>
+                <h2>Resultados <span>del análisis</span></h2>
+                <p>Salida del modelo y nivel de confianza.</p>
+              </div>
+            </header>
+            {age.state === "result" && ageResult && (
+              <section className="result-card" data-testid="age-result" aria-live="polite">
+                <div className="result-card-main">
+                  <div>
+                    <div className="result-label">Edad estimada</div>
+                    {!ageNarrow && <p className="result-value" data-testid="age-range">{ageResult.range.min}–{ageResult.range.max} <small>años</small></p>}
+                    <p className="result-value" data-testid="age-point">≈{ageResult.estimatedAge} <small>años</small></p>
+                    <p className="result-subtext" data-testid="age-disclaimer">{ageResult.disclaimer}</p>
+                  </div>
+                  <span className="result-icon material-symbols-outlined" aria-hidden="true">cake</span>
+                </div>
+              </section>
+            )}
+            {mood.state === "result" && mood.result && (
+              <section className="result-card mood-card" data-testid="mood-result" aria-live="polite">
+                <div className="result-card-main">
+                  <div>
+                    <div className="result-label">Estado de ánimo</div>
+                    <p className="result-value" data-testid="mood-label">{mood.result.label}{confidenceLabel && <small data-testid="mood-confidence"> {confidenceLabel}</small>}</p>
+                    <p className="result-subtext" data-testid="mood-disclaimer">{mood.result.disclaimer}</p>
+                  </div>
+                  <span className="result-icon material-symbols-outlined" aria-hidden="true">mood</span>
+                </div>
+              </section>
+            )}
+            <div className="privacy-note">
+              <span className="material-symbols-outlined" aria-hidden="true">info</span>
+              <span><strong>Protección biométrica:</strong> los vectores faciales se procesan en memoria transitoria. No se guardan capturas originales.</span>
+            </div>
+          </aside>
         </div>
 
-        {/* Spec 006 (T022): "Eliminar mis datos" button + confirmation dialog. */}
-        <div>
+        <div className="dashboard-utility">
           <button
+            className="danger-button"
             type="button"
             onClick={handleDeleteClick}
             disabled={deleteBusy}
@@ -354,11 +304,8 @@ const Dashboard: React.FC = () => {
             {DELETE_BUTTON_LABEL}
           </button>
 
-          {/* Lightweight inline confirmation dialog (research R-8). Keyboard-
-              accessible with descriptive accessible names; state communication
-              uses text + role (not color-only, PRD §10). */}
           {deleteState === "confirming" && (
-            <section
+            <section className="state-surface"
               role="dialog"
               aria-modal="true"
               aria-labelledby="delete-confirm-heading"
@@ -366,7 +313,7 @@ const Dashboard: React.FC = () => {
             >
               <h2 id="delete-confirm-heading">Confirmar eliminación</h2>
               <p data-testid="delete-confirm-message">{DELETE_CONFIRM_MESSAGE}</p>
-              <button
+              <button className="button-primary"
                 type="button"
                 onClick={handleDeleteConfirm}
                 aria-label="Confirmar eliminación de mis datos"
@@ -374,7 +321,7 @@ const Dashboard: React.FC = () => {
               >
                 Confirmar
               </button>
-              <button
+              <button className="button-secondary"
                 type="button"
                 onClick={handleDeleteCancel}
                 aria-label="Cancelar eliminación de mis datos"
@@ -385,18 +332,16 @@ const Dashboard: React.FC = () => {
             </section>
           )}
 
-          {/* Processing state (button disabled, actionable text — not color-only). */}
           {deleteState === "processing" && (
-            <p data-testid="delete-processing" role="status" aria-live="polite">
+            <p className="state-surface" data-testid="delete-processing" role="status" aria-live="polite">
               Eliminando tus datos…
             </p>
           )}
 
-          {/* Recoverable deletion error surface + retry (FR-011, research R-9). */}
           {deleteState === "error" && (
-            <section data-testid="delete-error" role="alert" aria-live="assertive">
+            <section className="state-surface" data-testid="delete-error" role="alert" aria-live="assertive">
               <p data-testid="delete-error-message">{deleteError}</p>
-              <button
+              <button className="button-secondary"
                 type="button"
                 onClick={handleDeleteRetry}
                 aria-label="Reintentar eliminación de mis datos"
@@ -404,7 +349,7 @@ const Dashboard: React.FC = () => {
               >
                 Reintentar
               </button>
-              <button
+              <button className="button-secondary"
                 type="button"
                 onClick={handleDeleteCancel}
                 aria-label="Cancelar eliminación de mis datos"
@@ -416,7 +361,7 @@ const Dashboard: React.FC = () => {
           )}
         </div>
 
-        <button
+        <button className="button-dark"
           type="button"
           onClick={handleLogout}
           aria-label="Cerrar sesión"

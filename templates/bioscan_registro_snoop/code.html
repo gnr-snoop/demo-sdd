@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BioScan - Registration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;600;700&amp;family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "tertiary": "#ab1f15",
+          "on-tertiary-fixed": "#410000",
+          "surface-container-low": "#f4f4f0",
+          "hairline-soft": "#ebe6df",
+          "inverse-surface": "#2f312e",
+          "on-tertiary": "#ffffff",
+          "outline-variant": "#e6bdb7",
+          "tertiary-fixed": "#ffdad5",
+          "on-secondary-fixed": "#021f29",
+          "surface-container": "#efeeea",
+          "surface-bright": "#faf9f5",
+          "surface-tint": "#be0b0a",
+          "surface-dark": "#181715",
+          "on-primary": "#ffffff",
+          "outline": "#916f6a",
+          "surface-container-lowest": "#ffffff",
+          "background": "#faf9f5",
+          "hairline": "#e6dfd8",
+          "body": "#212121",
+          "secondary-container": "#cbe7f5",
+          "on-primary-container": "#fff3f1",
+          "on-primary-fixed": "#410000",
+          "body-soft": "#616161",
+          "error": "#c64545",
+          "on-error": "#ffffff",
+          "surface-container-highest": "#e3e2df",
+          "tertiary-fixed-dim": "#ffb4a9",
+          "secondary-fixed": "#cbe7f5",
+          "surface-variant": "#e3e2df",
+          "on-surface": "#1b1c1a",
+          "warning": "#d4a017",
+          "surface-container-high": "#e9e8e4",
+          "on-secondary-fixed-variant": "#304a55",
+          "on-tertiary-container": "#fff3f1",
+          "on-surface-variant": "#5c403b",
+          "secondary-fixed-dim": "#afcbd8",
+          "on-tertiary-fixed-variant": "#920605",
+          "on-primary-fixed-variant": "#930003",
+          "tertiary-container": "#ce392b",
+          "on-secondary": "#ffffff",
+          "surface-card": "#efe9de",
+          "on-dark": "#faf9f5",
+          "primary": "#b40004",
+          "primary-fixed-dim": "#ffb4a9",
+          "on-error-container": "#93000a",
+          "secondary": "#48626e",
+          "error-container": "#ffdad6",
+          "primary-darker": "#820E0A",
+          "surface": "#faf9f5",
+          "body-medium": "#424242",
+          "inverse-on-surface": "#f2f1ed",
+          "primary-container": "#d9261c",
+          "surface-dark-elevated": "#252320",
+          "surface-dark-soft": "#1f1e1b",
+          "inverse-primary": "#ffb4a9",
+          "on-dark-soft": "#a09d96",
+          "surface-card-strong": "#e8e0d2",
+          "surface-soft": "#f5f0e8",
+          "primary-fixed": "#ffdad5",
+          "primary-light": "#FF6347",
+          "surface-dim": "#dbdad6",
+          "success": "#5db872",
+          "on-background": "#1b1c1a",
+          "on-secondary-container": "#4e6874"
+        },
+        "fontFamily": {
+          "headline": ["Fraunces", "Georgia", "serif"],
+          "body": ["Geist", "system-ui", "sans-serif"]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  body {
+    font-family: 'Geist', system-ui, sans-serif;
+  }
+  .font-fraunces {
+    font-family: 'Fraunces', Georgia, serif;
+    font-variation-settings: 'SOFT' 0, 'WONK' 0;
+  }
+  .glass-scanner {
+    backdrop-filter: blur(10px);
+    background-color: rgba(250, 249, 245, 0.25);
+  }
+  .scanner-glow-snoop {
+    box-shadow: inset 0 0 32px rgba(217, 38, 28, 0.12);
+  }
+  .card-signature {
+    border-radius: 2rem 2rem 0.5rem 2rem;
+  }
+</style>
+</head>
+<body class="bg-[#faf9f5] text-[#1b1c1a] min-h-screen flex flex-col antialiased selection:bg-[#d9261c]/10 selection:text-[#d9261c]">
+<!-- Header with Brand Logo -->
+<header class="w-full max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+<a class="flex items-center gap-3 group" href="#">
+<div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D9261C] to-[#A31810] flex items-center justify-center text-white shadow-sm shadow-[#D9261C]/25 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">fingerprint</span>
+</div>
+<div class="flex flex-col">
+<span class="font-fraunces font-bold text-lg tracking-tight text-[#1b1c1a]">BioScan</span>
+<span class="text-[10px] tracking-widest uppercase font-medium text-[#5c403b]/70 -mt-1">Snoop × Claude</span>
+</div>
+</a>
+<div class="flex items-center gap-6">
+<a class="text-xs font-medium text-[#5c403b] hover:text-[#D9261C] transition-colors" href="#">Documentation</a>
+<a class="text-xs font-medium text-[#5c403b] hover:text-[#D9261C] transition-colors" href="#">Support</a>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-[800px] mx-auto px-4 py-4 flex flex-col items-center justify-center">
+<!-- Title Section -->
+<div class="text-center mb-8">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#f5f0e8] border border-[#e6dfd8] text-xs font-medium text-[#5c403b] mb-3">
+<span class="w-1.5 h-1.5 rounded-full bg-[#D9261C]"></span>
+        Secure Identity Onboarding
+      </div>
+<h1 class="font-fraunces font-normal text-3xl sm:text-4xl text-[#1b1c1a] tracking-tight mb-2">
+        Create BioScan ID
+      </h1>
+<p class="font-body text-sm sm:text-base text-[#5c403b]">
+        Secure your account with cryptographic biometric authentication.
+      </p>
+</div>
+<!-- Registration Card with Snoop Signature Asymmetric Radius -->
+<div class="bg-[#efe9de] border border-white card-signature shadow-[0_12px_40px_rgba(43,24,18,0.08)] w-full max-w-md p-6 sm:p-8 flex flex-col gap-6 relative">
+<!-- Email Field -->
+<div class="flex flex-col gap-1.5">
+<label class="text-xs font-semibold uppercase tracking-wider text-[#5c403b]" for="email">
+          Email Address
+        </label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-[#916f6a] text-[18px]">
+            mail
+          </span>
+<input class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-[#e6dfd8] bg-[#faf9f5] text-[#1b1c1a] placeholder-[#916f6a]/60 text-sm font-medium focus:border-[#D9261C] focus:ring-2 focus:ring-[#D9261C]/20 focus:outline-none transition-all" id="email" placeholder="name@company.com" type="email"/>
+</div>
+</div>
+<!-- Biometric Capture Viewfinder -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<label class="text-xs font-semibold uppercase tracking-wider text-[#5c403b]">
+            Biometric Signature
+          </label>
+<span class="text-[11px] font-medium text-[#916f6a] flex items-center gap-1 bg-[#faf9f5] px-2 py-0.5 rounded-full border border-[#e6dfd8]">
+<span class="material-symbols-outlined text-[13px] text-[#D9261C]">verified_user</span> Required
+          </span>
+</div>
+<!-- Viewfinder Box -->
+<div class="relative w-full aspect-[4/3] rounded-xl bg-[#e3e2df] overflow-hidden scanner-glow-snoop border border-[#e6dfd8] group">
+<!-- Background Camera Feed Simulation -->
+<div class="absolute inset-0 bg-cover bg-center opacity-30" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC7j-F4rCA3LhXtynXfe3XErDaJrMHXRgKOtAJEUrslJgf8lPy8zwTXG8ku-QzfuHcsBUWVo5k3zzNZH8GHyfPlDGZroW4g9zVCWfveXiSs00wIqsuWY5a09RaGXuXK5FnrujCbomhDgiaWy2nMwu_SLm22yEb9Jb6UEEX9wsOfprTixibmIj3XCdz2iK1Smc8hHPgTLhiEquVOlEXEcQqYgXUYEF5iGoQGyyn4cXpMbKJGuVfYUUXb4Q');"></div>
+<!-- Glass Frame Overlay -->
+<div class="absolute inset-0 glass-scanner flex items-center justify-center pointer-events-none">
+<!-- Center Circle -->
+<div class="relative w-44 h-44 rounded-full border-2 border-[#D9261C]/25 flex items-center justify-center">
+<!-- Animated Target Brackets -->
+<div class="absolute -top-2 -left-2 w-5 h-5 border-t-2 border-l-2 border-[#D9261C] rounded-tl transition-transform duration-300 group-hover:scale-110"></div>
+<div class="absolute -top-2 -right-2 w-5 h-5 border-t-2 border-r-2 border-[#D9261C] rounded-tr transition-transform duration-300 group-hover:scale-110"></div>
+<div class="absolute -bottom-2 -left-2 w-5 h-5 border-b-2 border-l-2 border-[#D9261C] rounded-bl transition-transform duration-300 group-hover:scale-110"></div>
+<div class="absolute -bottom-2 -right-2 w-5 h-5 border-b-2 border-r-2 border-[#D9261C] rounded-br transition-transform duration-300 group-hover:scale-110"></div>
+<!-- Alignment Prompt -->
+<div class="text-xs font-medium text-[#424242] text-center px-4">
+                Align face within frame
+              </div>
+<!-- Camera Ready Status Pill -->
+<div class="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-[#faf9f5] px-3 py-1 rounded-full border border-[#e6dfd8] shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+<span class="w-2 h-2 rounded-full bg-[#5db872] animate-pulse"></span>
+<span class="text-[11px] font-semibold text-[#1b1c1a]">Camera Ready</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Primary Action Button: Snoop Red Gradient #D9261C -> #A31810 -->
+<button class="w-full mt-2 bg-gradient-to-r from-[#D9261C] to-[#A31810] hover:from-[#be2017] hover:to-[#8c140d] text-white font-medium text-sm py-3 px-5 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-[#D9261C]/25 hover:shadow-lg hover:shadow-[#D9261C]/35 transition-all active:scale-[0.99]" type="button">
+<span class="material-symbols-outlined text-[19px]" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+          Start Scan
+        </button>
+</div>
+<!-- Separation Hairline -->
+<div class="h-px w-full bg-[#e6dfd8]"></div>
+<!-- Progress / Steps Indicator -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between text-xs font-medium text-[#5c403b]">
+<span class="text-[#1b1c1a] font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-[#D9261C]"></span> Account Details
+          </span>
+<span>Verification</span>
+</div>
+<div class="h-1.5 w-full bg-[#faf9f5] rounded-full overflow-hidden border border-[#e6dfd8]">
+<div class="h-full bg-gradient-to-r from-[#D9261C] to-[#ce392b] w-1/2 rounded-full"></div>
+</div>
+</div>
+</div>
+<!-- Login Redirection Link -->
+<div class="mt-6 text-center">
+<a class="inline-flex items-center gap-1.5 text-xs font-medium text-[#5c403b] hover:text-[#D9261C] transition-colors py-1 px-3 rounded-md hover:bg-[#efe9de]/50" href="#">
+<span>Already have an account?</span>
+<span class="font-semibold text-[#D9261C]">Login</span>
+<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+</a>
+</div>
+</main>
+<!-- Clean Minimal Footer -->
+<footer class="w-full py-6 text-center text-xs text-[#5c403b]/60">
+<p>© 2025 BioScan ID. Encrypted with Snoop Zero-Knowledge Biometrics.</p>
+</footer>
+</body></html>

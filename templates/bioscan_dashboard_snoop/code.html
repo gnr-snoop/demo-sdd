@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BioScan - Main Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..500&amp;family=Geist:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+              "tertiary": "#ab1f15",
+              "on-tertiary-fixed": "#410000",
+              "surface-container-low": "#f4f4f0",
+              "hairline-soft": "#ebe6df",
+              "inverse-surface": "#2f312e",
+              "on-tertiary": "#ffffff",
+              "outline-variant": "#e6bdb7",
+              "tertiary-fixed": "#ffdad5",
+              "on-secondary-fixed": "#021f29",
+              "surface-container": "#efeeea",
+              "surface-bright": "#faf9f5",
+              "surface-tint": "#be0b0a",
+              "surface-dark": "#181715",
+              "on-primary": "#ffffff",
+              "outline": "#916f6a",
+              "surface-container-lowest": "#ffffff",
+              "background": "#faf9f5",
+              "hairline": "#e6dfd8",
+              "body": "#212121",
+              "secondary-container": "#cbe7f5",
+              "on-primary-container": "#fff3f1",
+              "on-primary-fixed": "#410000",
+              "body-soft": "#616161",
+              "error": "#c64545",
+              "on-error": "#ffffff",
+              "surface-container-highest": "#e3e2df",
+              "tertiary-fixed-dim": "#ffb4a9",
+              "secondary-fixed": "#cbe7f5",
+              "surface-variant": "#e3e2df",
+              "on-surface": "#1b1c1a",
+              "warning": "#d4a017",
+              "surface-container-high": "#e9e8e4",
+              "on-secondary-fixed-variant": "#304a55",
+              "on-tertiary-container": "#fff3f1",
+              "on-surface-variant": "#5c403b",
+              "secondary-fixed-dim": "#afcbd8",
+              "on-tertiary-fixed-variant": "#920605",
+              "on-primary-fixed-variant": "#930003",
+              "tertiary-container": "#ce392b",
+              "on-secondary": "#ffffff",
+              "surface-card": "#efe9de",
+              "on-dark": "#faf9f5",
+              "primary": "#b40004",
+              "primary-fixed-dim": "#ffb4a9",
+              "on-error-container": "#93000a",
+              "secondary": "#48626e",
+              "error-container": "#ffdad6",
+              "primary-darker": "#820E0A",
+              "surface": "#faf9f5",
+              "body-medium": "#424242",
+              "inverse-on-surface": "#f2f1ed",
+              "primary-container": "#d9261c",
+              "surface-dark-elevated": "#252320",
+              "surface-dark-soft": "#1f1e1b",
+              "inverse-primary": "#ffb4a9",
+              "on-dark-soft": "#a09d96",
+              "surface-card-strong": "#e8e0d2",
+              "surface-soft": "#f5f0e8",
+              "primary-fixed": "#ffdad5",
+              "primary-light": "#FF6347",
+              "surface-dim": "#dbdad6",
+              "success": "#2e7d32",
+              "on-background": "#1b1c1a",
+              "on-secondary-container": "#4e6874"
+            },
+            "fontFamily": {
+              "fraunces": ["Fraunces", "Georgia", "serif"],
+              "geist": ["Geist", "system-ui", "sans-serif"],
+              "headline-xl": ["Fraunces", "Georgia", "serif"],
+              "headline-md": ["Fraunces", "Georgia", "serif"],
+              "headline-lg": ["Fraunces", "Georgia", "serif"],
+              "body-md": ["Geist", "system-ui", "sans-serif"],
+              "label-md": ["Geist", "system-ui", "sans-serif"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(217, 38, 28, 0.85), transparent);
+            box-shadow: 0 0 12px rgba(217, 38, 28, 0.65);
+            animation: scan 3s infinite linear;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .corner-bracket {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border: 2px solid rgba(217, 38, 28, 0.45);
+            animation: pulse-bracket 2.4s infinite alternate;
+        }
+        .tl-bracket { top: 24px; left: 24px; border-right: none; border-bottom: none; border-radius: 10px 0 0 0; }
+        .tr-bracket { top: 24px; right: 24px; border-left: none; border-bottom: none; border-radius: 0 10px 0 0; }
+        .bl-bracket { bottom: 24px; left: 24px; border-right: none; border-top: none; border-radius: 0 0 0 10px; }
+        .br-bracket { bottom: 24px; right: 24px; border-left: none; border-top: none; border-radius: 0 0 10px 0; }
+        
+        @keyframes pulse-bracket {
+            0% { border-color: rgba(217, 38, 28, 0.25); }
+            100% { border-color: rgba(217, 38, 28, 0.85); }
+        }
+        
+        .glass-overlay {
+            background: rgba(250, 249, 245, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .snoop-asymmetric-card {
+            border-radius: 2rem 2rem 0.5rem 2rem;
+        }
+
+        .snoop-asymmetric-nav {
+            border-radius: 1.25rem 0.35rem 1.25rem 1.25rem;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased h-screen overflow-hidden flex font-geist">
+<!-- SideNavBar (Snoop x Claude surface-card tone) -->
+<nav class="hidden md:flex flex-col bg-surface-card border-r border-hairline h-full w-64 left-0 top-0 py-6 px-4 fixed z-40">
+<!-- Brand / Logo -->
+<div class="px-2 mb-8 flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-container to-primary flex items-center justify-center text-on-primary font-fraunces font-bold text-xl shadow-md shadow-primary/20">
+            B
+        </div>
+<div>
+<div class="font-fraunces text-xl font-bold tracking-tight text-on-surface">BioScan <span class="text-primary italic">ID</span></div>
+<div class="text-xs text-body-soft font-geist font-medium">Secure Biometric Access</div>
+</div>
+</div>
+<!-- Navigation Items -->
+<div class="flex-1 overflow-y-auto flex flex-col gap-1.5 font-geist">
+<a class="text-body-soft hover:text-on-surface hover:bg-surface-card-strong/60 snoop-asymmetric-nav px-3.5 py-2.5 flex items-center gap-3 transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+<span class="text-sm font-medium">Home</span>
+</a>
+<a class="text-body-soft hover:text-on-surface hover:bg-surface-card-strong/60 snoop-asymmetric-nav px-3.5 py-2.5 flex items-center gap-3 transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+<span class="text-sm font-medium">Register</span>
+</a>
+<a class="text-body-soft hover:text-on-surface hover:bg-surface-card-strong/60 snoop-asymmetric-nav px-3.5 py-2.5 flex items-center gap-3 transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">face</span>
+<span class="text-sm font-medium">Login</span>
+</a>
+<a class="bg-surface-dark text-on-dark shadow-sm snoop-asymmetric-nav px-3.5 py-2.5 flex items-center justify-between transition-all duration-150" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[20px] text-primary-light" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-sm font-semibold tracking-wide">Dashboard</span>
+</div>
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+</a>
+</div>
+<!-- Bottom Actions -->
+<div class="mt-auto pt-4 flex flex-col gap-1.5 font-geist">
+<a class="text-body-soft hover:text-on-surface hover:bg-surface-card-strong/60 snoop-asymmetric-nav px-3.5 py-2 flex items-center gap-3 transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="text-body-soft hover:text-on-surface hover:bg-surface-card-strong/60 snoop-asymmetric-nav px-3.5 py-2 flex items-center gap-3 transition-all duration-150" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="text-sm font-medium">Support</span>
+</a>
+<div class="h-px bg-hairline my-2"></div>
+<button class="text-body-medium hover:text-primary hover:bg-primary-fixed/40 snoop-asymmetric-nav px-3.5 py-2.5 flex items-center gap-3 transition-all duration-150 w-full text-left text-sm font-medium">
+<span class="material-symbols-outlined text-[20px] text-primary">logout</span>
+            Cerrar Sesión
+        </button>
+<button class="bg-gradient-to-r from-primary-container to-primary-darker text-white hover:brightness-105 active:scale-[0.99] snoop-asymmetric-nav px-3.5 py-2.5 flex items-center justify-center gap-2 transition-all duration-150 w-full text-xs font-semibold mt-1 shadow-md shadow-primary/25">
+<span class="material-symbols-outlined text-[18px]">delete_forever</span>
+            Eliminar Datos del Servidor
+        </button>
+</div>
+</nav>
+<!-- TopNavBar for Mobile -->
+<nav class="md:hidden flex justify-between items-center w-full px-5 h-16 bg-surface-card border-b border-hairline fixed top-0 z-40">
+<div class="font-fraunces text-xl font-bold text-on-surface flex items-center gap-2">
+<div class="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-container to-primary flex items-center justify-center text-on-primary text-sm font-bold shadow-sm">B</div>
+        BioScan <span class="text-primary italic">ID</span>
+</div>
+<button class="text-body-soft hover:text-on-surface p-1.5 rounded-full hover:bg-surface-card-strong">
+<span class="material-symbols-outlined text-[24px]">account_circle</span>
+</button>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-64 relative pt-20 md:pt-8 h-full overflow-y-auto bg-background p-6 md:p-10 flex flex-col lg:flex-row gap-8">
+<!-- Camera Viewfinder Section -->
+<section class="w-full lg:w-2/3 flex flex-col h-full gap-5">
+<div class="flex justify-between items-center">
+<div>
+<h1 class="font-fraunces text-3xl md:text-4xl font-normal tracking-tight text-body">
+                    Live <span class="italic font-light text-secondary">Analysis</span>
+</h1>
+<p class="text-xs md:text-sm text-body-soft font-geist mt-1">Real-time facial telemetry &amp; biometric computation</p>
+</div>
+<div>
+<span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-card border border-hairline text-on-surface text-xs font-medium shadow-xs font-geist">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-ping"></span>
+<span class="w-2 h-2 rounded-full bg-primary -ml-4"></span>
+                    Sensor Active
+                </span>
+</div>
+</div>
+<!-- Viewfinder Card -->
+<div class="relative w-full flex-1 min-h-[460px] snoop-asymmetric-card overflow-hidden bg-surface-card border border-hairline shadow-[0px_16px_36px_rgba(27,28,26,0.06)] flex flex-col">
+<!-- Camera Feed Mock -->
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover grayscale-[10%]" data-alt="A medium close-up of a young professional looking directly forward with a neutral expression. The setting is a bright, modern corporate office with soft, diffused white lighting that creates a high-tech, clinical light-mode aesthetic. The subject is perfectly centered, suitable for biometric scanning analysis, with subtle cool blue ambient light accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAx6IKYIi1vtZ6YNmJZa9RndZDRjrthr68ha-QEV716T1i3cvcbHdWMilcFfi1Cq1OLLWh7jpBfOd7Plgi1VjHDIA6pwFUHD6C6YGUqU_xR3PSojVVEOGp0v5LqSWa0N4fRhwvMQDsrE5XcqH557mM0XY_ML0tbXFONmyh8I4i397kxNfFpImzCnaEGw404QLT--53EF40uJSiXhyCTQtgAl2_ET-8zKGIhZeBefhlshs6thw53uMrDgA"/>
+</div>
+<!-- Scanning Overlays -->
+<div class="absolute inset-0 z-10 pointer-events-none">
+<div class="scanner-line"></div>
+<div class="corner-bracket tl-bracket"></div>
+<div class="corner-bracket tr-bracket"></div>
+<div class="corner-bracket bl-bracket"></div>
+<div class="corner-bracket br-bracket"></div>
+<!-- Facial Mesh / Target (Stylized SVG) -->
+<div class="absolute inset-0 flex items-center justify-center opacity-40">
+<svg fill="none" height="260" viewbox="0 0 200 250" width="210" xmlns="http://www.w3.org/2000/svg">
+<ellipse cx="100" cy="125" rx="80" ry="110" stroke="#d9261c" stroke-dasharray="4 4" stroke-width="1.2"></ellipse>
+<line stroke="#d9261c" stroke-dasharray="2 4" stroke-width="0.75" x1="20" x2="180" y1="125" y2="125"></line>
+<line stroke="#d9261c" stroke-dasharray="2 4" stroke-width="0.75" x1="100" x2="100" y1="15" y2="235"></line>
+<rect height="10" stroke="#d9261c" stroke-width="1" width="20" x="60" y="100"></rect>
+<rect height="10" stroke="#d9261c" stroke-width="1" width="20" x="120" y="100"></rect>
+</svg>
+</div>
+</div>
+<!-- Bottom Controls Over Viewfinder -->
+<div class="absolute bottom-0 w-full p-4 md:p-6 z-20 flex flex-col gap-2 glass-overlay border-t border-hairline/80">
+<div class="flex flex-wrap justify-center gap-3 md:gap-4">
+<!-- Snoop Primary Pill Button -->
+<button class="bg-gradient-to-r from-primary-container via-tertiary-container to-primary-darker hover:brightness-110 active:scale-95 text-on-primary font-geist text-sm font-semibold py-3 px-7 rounded-full flex items-center gap-2.5 transition-all shadow-lg shadow-primary-container/30">
+<span class="material-symbols-outlined text-[20px]">calculate</span>
+                        Calcular Edad
+                    </button>
+<!-- Secondary Tone Pill Button -->
+<button class="bg-surface-dark text-on-dark hover:bg-surface-dark-elevated active:scale-95 border border-hairline/40 font-geist text-sm font-medium py-3 px-7 rounded-full flex items-center gap-2.5 transition-all shadow-md">
+<span class="material-symbols-outlined text-[20px] text-secondary-fixed">mood</span>
+                        Determinar Mood
+                    </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Results / Info Panel -->
+<aside class="w-full lg:w-1/3 flex flex-col gap-5">
+<div>
+<h2 class="font-fraunces text-2xl md:text-3xl font-normal tracking-tight text-body">
+                Analysis <span class="italic font-light text-secondary">Results</span>
+</h2>
+<p class="text-xs md:text-sm text-body-soft font-geist mt-1">Model output &amp; confidence telemetry</p>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Age Result Card (Snoop Signature Asymmetric) -->
+<div class="bg-surface-card snoop-asymmetric-card p-6 border border-hairline border-l-4 border-l-primary-container shadow-sm flex items-center justify-between hover:shadow-md transition-all">
+<div>
+<div class="font-geist text-xs font-semibold text-outline uppercase tracking-wider mb-1">Estimated Age</div>
+<div class="font-fraunces text-5xl font-light text-body tracking-tight">25</div>
+<div class="font-geist text-xs text-body-medium mt-2 flex items-center gap-1.5 font-medium">
+<span class="material-symbols-outlined text-sm text-success" style="font-variation-settings: 'FILL' 1;">verified</span>
+                        High Confidence (98.4%)
+                    </div>
+</div>
+<div class="w-16 h-16 rounded-2xl bg-primary-fixed flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-primary text-3xl">cake</span>
+</div>
+</div>
+<!-- Mood Result Card (Snoop Signature Asymmetric) -->
+<div class="bg-surface-card snoop-asymmetric-card p-6 border border-hairline border-l-4 border-l-secondary shadow-sm flex items-center justify-between hover:shadow-md transition-all">
+<div class="flex-1 pr-4">
+<div class="font-geist text-xs font-semibold text-outline uppercase tracking-wider mb-1">Current Mood</div>
+<div class="font-fraunces text-3xl font-light text-body tracking-tight">Happy</div>
+<div class="w-full max-w-[140px] bg-hairline h-1.5 mt-3 rounded-full overflow-hidden">
+<div class="bg-gradient-to-r from-secondary to-secondary-container h-full w-[85%] rounded-full"></div>
+</div>
+</div>
+<div class="w-16 h-16 rounded-2xl bg-secondary-container flex items-center justify-center shadow-inner">
+<span class="material-symbols-outlined text-on-secondary-container text-3xl" style="font-variation-settings: 'FILL' 1;">sentiment_very_satisfied</span>
+</div>
+</div>
+<!-- Additional Claude Editorial Micro-Card -->
+<div class="bg-surface-container-low rounded-2xl p-4 border border-hairline text-xs font-geist text-body-soft flex items-start gap-3 mt-1">
+<span class="material-symbols-outlined text-[20px] text-body-medium">info</span>
+<div>
+<span class="font-semibold text-body">Biometric Privacy Guard</span>: All facial feature vectors are computed in local transient memory. No raw frame captures are stored without explicit authorization.
+                </div>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

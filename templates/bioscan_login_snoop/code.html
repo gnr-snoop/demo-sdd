@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BioScan - Secure Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary": "#ab1f15",
+                        "on-tertiary-fixed": "#410000",
+                        "surface-container-low": "#f4f4f0",
+                        "hairline-soft": "#ebe6df",
+                        "inverse-surface": "#2f312e",
+                        "on-tertiary": "#ffffff",
+                        "outline-variant": "#e6bdb7",
+                        "tertiary-fixed": "#ffdad5",
+                        "on-secondary-fixed": "#021f29",
+                        "surface-container": "#efeeea",
+                        "surface-bright": "#faf9f5",
+                        "surface-tint": "#be0b0a",
+                        "surface-dark": "#181715",
+                        "on-primary": "#ffffff",
+                        "outline": "#916f6a",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#faf9f5",
+                        "hairline": "#e6dfd8",
+                        "body": "#212121",
+                        "secondary-container": "#cbe7f5",
+                        "on-primary-container": "#fff3f1",
+                        "on-primary-fixed": "#410000",
+                        "body-soft": "#616161",
+                        "error": "#c64545",
+                        "on-error": "#ffffff",
+                        "surface-container-highest": "#e3e2df",
+                        "tertiary-fixed-dim": "#ffb4a9",
+                        "secondary-fixed": "#cbe7f5",
+                        "surface-variant": "#e3e2df",
+                        "on-surface": "#1b1c1a",
+                        "warning": "#d4a017",
+                        "surface-container-high": "#e9e8e4",
+                        "on-secondary-fixed-variant": "#304a55",
+                        "on-tertiary-container": "#fff3f1",
+                        "on-surface-variant": "#5c403b",
+                        "secondary-fixed-dim": "#afcbd8",
+                        "on-tertiary-fixed-variant": "#920605",
+                        "on-primary-fixed-variant": "#930003",
+                        "tertiary-container": "#ce392b",
+                        "on-secondary": "#ffffff",
+                        "surface-card": "#efe9de",
+                        "on-dark": "#faf9f5",
+                        "primary": "#b40004",
+                        "primary-fixed-dim": "#ffb4a9",
+                        "on-error-container": "#93000a",
+                        "secondary": "#48626e",
+                        "error-container": "#ffdad6",
+                        "primary-darker": "#820E0A",
+                        "surface": "#faf9f5",
+                        "body-medium": "#424242",
+                        "inverse-on-surface": "#f2f1ed",
+                        "primary-container": "#d9261c",
+                        "surface-dark-elevated": "#252320",
+                        "surface-dark-soft": "#1f1e1b",
+                        "inverse-primary": "#ffb4a9",
+                        "on-dark-soft": "#a09d96",
+                        "surface-card-strong": "#e8e0d2",
+                        "surface-soft": "#f5f0e8",
+                        "primary-fixed": "#ffdad5",
+                        "primary-light": "#FF6347",
+                        "surface-dim": "#dbdad6",
+                        "success": "#5db872",
+                        "on-background": "#1b1c1a",
+                        "on-secondary-container": "#4e6874"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "snoop": "2rem 2rem 0.5rem 2rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xxl": "2rem",
+                        "xs": "0.5rem",
+                        "xl": "1.5rem",
+                        "md": "1rem",
+                        "xxs": "0.25rem",
+                        "sm": "0.75rem",
+                        "section": "6rem",
+                        "3xl": "3rem",
+                        "4xl": "4rem",
+                        "lg": "1.25rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Fraunces", "Georgia", "serif"],
+                        "body": ["Geist", "system-ui", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;600;700&amp;family=Geist:wght@400;500;600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+
+        .snoop-card-shape {
+            border-radius: 2rem 2rem 0.5rem 2rem;
+        }
+
+        .btn-snoop-gradient {
+            background: linear-gradient(180deg, #D9261C 0%, #A31810 100%);
+            box-shadow: 0 4px 16px -2px rgba(217, 38, 28, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-snoop-gradient:hover {
+            background: #FF4D4D;
+            box-shadow: 0 8px 24px -2px rgba(255, 77, 77, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+        }
+
+        .viewfinder-corner {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            border-color: #d9261c;
+            border-width: 0;
+            transition: all 0.3s ease;
+        }
+        .viewfinder-corner.tl { top: 16px; left: 16px; border-top-width: 3.5px; border-left-width: 3.5px; border-top-left-radius: 8px; }
+        .viewfinder-corner.tr { top: 16px; right: 16px; border-top-width: 3.5px; border-right-width: 3.5px; border-top-right-radius: 8px; }
+        .viewfinder-corner.bl { bottom: 16px; left: 16px; border-bottom-width: 3.5px; border-left-width: 3.5px; border-bottom-left-radius: 8px; }
+        .viewfinder-corner.br { bottom: 16px; right: 16px; border-bottom-width: 3.5px; border-right-width: 3.5px; border-bottom-right-radius: 8px; }
+
+        .scanning-active .viewfinder-corner {
+            border-color: #5db872;
+            transform: scale(0.92);
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(to right, transparent, #FF4D4D, #D9261C, transparent);
+            box-shadow: 0 0 14px #FF4D4D;
+            opacity: 0;
+            transform: translateY(-100%);
+        }
+
+        .scanning-active .scan-line {
+            animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            opacity: 1;
+        }
+
+        @keyframes scan {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(270px); }
+            100% { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-body font-body min-h-screen flex items-center justify-center p-md md:p-xxl antialiased selection:bg-tertiary-fixed selection:text-on-tertiary-fixed">
+<main class="w-full max-w-[880px] mx-auto snoop-card-shape bg-surface-card border border-hairline shadow-[0_20px_50px_-15px_rgba(40,30,20,0.08)] overflow-hidden flex flex-col md:flex-row min-h-[580px] transition-all duration-300">
+<!-- Camera Viewfinder Area (Left) -->
+<div class="relative w-full md:w-[48%] bg-surface-dark h-[340px] md:h-auto overflow-hidden flex items-center justify-center group" id="camera-container">
+<!-- Simulated Camera Feed -->
+<img alt="Camera Feed" class="absolute inset-0 w-full h-full object-cover opacity-75 grayscale-[20%]" data-alt="A softly lit, blurred background simulating a modern, secure corporate office environment for a camera viewfinder. High-key lighting, cool gray and blue tones, minimalist aesthetic. The image should appear slightly out of focus as if waiting for a subject, conveying a sense of advanced biometric security." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI8uTA9u8hhCLoRzglLWxyvsBzQjLctX9d5L5EjjX1LH8CRVcyvCR_xhEFlqNtew0GceQDbWTS9B8g5PxR829UdNKmUCGgH2Wmt7SLs9ZtOqFJe1KIsQISrhZXkawJ1SXl8lwspy3EqcipqR9fK6GZR8Kl8EzSYt0Qr4DJYtlvgoVC4CgDB0m2EkrOiUku9qcGMsBUU-Iv87JlqEdnqn-WbPpPelEtF7TKHvUUeWgUdYBEa_KfLS1zPw"/>
+<!-- Warm Claude vignette overlay -->
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40 backdrop-blur-[1px]"></div>
+<!-- Status Chip -->
+<div class="absolute top-5 left-1/2 -translate-x-1/2 bg-surface-bright/95 backdrop-blur-md px-4 py-1.5 rounded-full shadow-sm flex items-center gap-2 border border-hairline transition-all duration-300 z-10" id="status-chip">
+<span class="w-2 h-2 rounded-full bg-primary-container" id="status-dot"></span>
+<span class="font-body text-xs font-semibold uppercase tracking-wider text-body-medium" id="status-text">Camera Ready</span>
+</div>
+<!-- Viewfinder UI -->
+<div class="relative w-60 h-60 md:w-[270px] md:h-[270px] rounded-full border-2 border-white/25 flex items-center justify-center" id="viewfinder-circle">
+<div class="absolute inset-0 rounded-full shadow-[inset_0_0_25px_rgba(255,255,255,0.12)]"></div>
+<!-- Corner Brackets in Snoop Crimson -->
+<div class="viewfinder-corner tl"></div>
+<div class="viewfinder-corner tr"></div>
+<div class="viewfinder-corner bl"></div>
+<div class="viewfinder-corner br"></div>
+<!-- Animated Scan Line -->
+<div class="scan-line"></div>
+<!-- Center Prompt (Hidden during scan) -->
+<div class="text-center transition-opacity duration-300 px-4" id="scan-prompt">
+<span class="material-symbols-outlined text-[44px] text-white/80 mb-2 drop-shadow-sm">face</span>
+<p class="font-body text-sm font-medium text-white/90 drop-shadow">Position face in circle</p>
+</div>
+</div>
+<!-- Bottom brand badge inside viewfinder -->
+<div class="absolute bottom-4 left-0 right-0 flex justify-center items-center gap-1.5 text-white/60 text-xs font-body tracking-wider uppercase">
+<span class="material-symbols-outlined text-[15px]">verified_user</span>
+<span>Biometric SafeZone</span>
+</div>
+</div>
+<!-- Login Form Area (Right) -->
+<div class="w-full md:w-[52%] p-8 md:p-12 flex flex-col justify-between bg-surface-card relative">
+<!-- Top decorative micro-accent -->
+<div class="w-8 h-1 bg-primary rounded-full mb-6"></div>
+<div>
+<!-- Header with Fraunces Upright -->
+<div class="mb-8">
+<h1 class="font-headline text-[34px] leading-tight text-on-surface font-semibold tracking-[-0.01em]">
+                    BioScan
+                </h1>
+<p class="font-body text-[15px] text-body-soft mt-1.5">
+                    Secure biometric authentication for Snoop workspace.
+                </p>
+</div>
+<!-- Form -->
+<form class="space-y-5" id="login-form" onsubmit="return false;">
+<div class="space-y-1.5">
+<label class="block font-body text-xs font-semibold uppercase tracking-wider text-body-medium" for="email">
+                        Email Address
+                    </label>
+<div class="relative group">
+<span class="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[20px] text-body-soft group-focus-within:text-primary transition-colors">
+                            mail
+                        </span>
+<input class="w-full pl-11 pr-4 py-3 bg-[#faf9f5] border border-[#e6dfd8] rounded-xl font-body text-[15px] text-body placeholder:text-body-soft/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]" id="email" name="email" placeholder="name@company.com" required="" type="email"/>
+</div>
+</div>
+<div class="pt-2">
+<button class="btn-snoop-gradient w-full text-on-primary py-3.5 px-6 rounded-xl font-body text-sm font-semibold tracking-wide flex items-center justify-center gap-2.5 active:scale-[0.98] cursor-pointer" id="scan-btn" type="button">
+<span class="material-symbols-outlined text-[20px]">fingerprint</span>
+<span>Sign In with Face Scan</span>
+</button>
+</div>
+<!-- Hidden progress bar for scan state -->
+<div class="hidden h-1.5 w-full bg-hairline rounded-full overflow-hidden mt-3" id="scan-progress-container">
+<div class="h-full bg-primary-container w-0 transition-all duration-300 ease-out" id="scan-progress-bar"></div>
+</div>
+</form>
+</div>
+<!-- Footer / Register Link -->
+<div class="mt-8 pt-6 border-t border-hairline/60 text-center md:text-left flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-body-soft font-body">
+<p>
+                Need an account? 
+                <a class="text-primary hover:text-primary-container font-semibold hover:underline underline-offset-4 transition-colors ml-0.5" href="#">
+                    Register
+                </a>
+</p>
+<span class="text-xs text-body-soft/70">v2.4 Biometric SSO</span>
+</div>
+</div>
+</main>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const scanBtn = document.getElementById('scan-btn');
+        const cameraContainer = document.getElementById('camera-container');
+        const scanPrompt = document.getElementById('scan-prompt');
+        const statusChip = document.getElementById('status-chip');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const progressBarContainer = document.getElementById('scan-progress-container');
+        const progressBar = document.getElementById('scan-progress-bar');
+        const emailInput = document.getElementById('email');
+
+        scanBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            if (!emailInput.value) {
+                emailInput.focus();
+                emailInput.classList.add('!border-error', '!ring-error/20');
+                setTimeout(() => emailInput.classList.remove('!border-error', '!ring-error/20'), 1500);
+                return;
+            }
+
+            // Initiate Scan UI State
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[20px]">refresh</span><span>Scanning...</span>';
+            scanBtn.classList.add('opacity-80', 'cursor-not-allowed');
+            
+            cameraContainer.classList.add('scanning-active');
+            scanPrompt.classList.add('opacity-0');
+            
+            statusText.textContent = 'Processing Biometrics';
+            statusDot.className = 'w-2 h-2 rounded-full bg-primary-container animate-pulse';
+            
+            progressBarContainer.classList.remove('hidden');
+            
+            // Simulate Scan Progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 18;
+                if (progress > 100) progress = 100;
+                progressBar.style.width = `${progress}%`;
+                
+                if (progress === 100) {
+                    clearInterval(interval);
+                    finishScan();
+                }
+            }, 250);
+        });
+
+        function finishScan() {
+            setTimeout(() => {
+                cameraContainer.classList.remove('scanning-active');
+                
+                // Success State
+                statusText.textContent = 'Identity Verified';
+                statusText.classList.replace('text-body-medium', 'text-success');
+                statusDot.className = 'w-2 h-2 rounded-full bg-success';
+                statusChip.classList.add('border-success/40', 'bg-white');
+                
+                scanBtn.innerHTML = '<span class="material-symbols-outlined text-[20px]">check_circle</span><span>Authenticated</span>';
+                scanBtn.style.background = '#3c8c50';
+                scanBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+                
+                document.querySelector('main').style.borderColor = '#5db872';
+            }, 400);
+        }
+    });
+</script>
+</body></html>
