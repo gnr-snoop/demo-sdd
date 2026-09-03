@@ -30,6 +30,43 @@ body {
   min-height: 100vh;
 }
 
+button,
+input {
+  font: inherit;
+}
+
+button {
+  border: 0;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-size: 1.25em;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga";
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgba(217, 38, 28, 0.28);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--color-primary-fixed);
+  color: var(--color-primary-dark);
+}
+
 /* --- Tipografía: H1 upright, H2–H4 italic (§1.2 regla clave) --- */
 
 h1 {

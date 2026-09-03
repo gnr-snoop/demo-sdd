@@ -9,12 +9,13 @@
   markers (defined in ``constants.py``):
     ``b"FELIZ"``          → label "feliz", confidence 0.8
     ``b"TRIST"``          → label "triste", confidence 0.7
+    ``b"ENOJO"``          → label "enojo", confidence 0.75
     ``b"NOCONCLUSIVE"``   → label "no concluyente", confidence 0.3
     ``b"OOSET"``          → out-of-set label "angry" (→ normalize to "no concluyente")
     ``b"MOODFAIL"``       → raises RuntimeError (→ MoodInternalError → 500)
   otherwise → default ``neutral`` / ``0.74`` (same as ``MockMoodEstimator``).
 
-  Marker precedence: MOODFAIL > FELIZ > TRIST > NOCONCLUSIVE > OOSET > default.
+  Marker precedence: MOODFAIL > FELIZ > TRIST > ENOJO > NOCONCLUSIVE > OOSET > default.
   Test fixtures embed the marker in a JPEG COM segment so Pillow decode succeeds
   AND the estimator still sees the marker in the raw bytes (mirrors
   ``ScriptableMockDetector``).
@@ -26,6 +27,7 @@ from ...domain.result_types import MoodResult
 from .constants import (
     MOOD_FAIL_MARKER,
     MOOD_FELIZ_MARKER,
+    MOOD_ENOJO_MARKER,
     MOOD_MODEL_VERSION,
     MOOD_NO_CONCLUSIVE_MARKER,
     MOOD_OUT_OF_SET_MARKER,
@@ -47,6 +49,7 @@ class MockMoodEstimator:
 _DEFAULT_RESULT = MoodResult(label="neutral", confidence=0.74, model_version=MOOD_MODEL_VERSION)
 _FELIZ_RESULT = MoodResult(label="feliz", confidence=0.8, model_version=MOOD_MODEL_VERSION)
 _TRISTE_RESULT = MoodResult(label="triste", confidence=0.7, model_version=MOOD_MODEL_VERSION)
+_ENOJO_RESULT = MoodResult(label="enojo", confidence=0.75, model_version=MOOD_MODEL_VERSION)
 _NO_CONCLUSIVE_RESULT = MoodResult(
     label="no concluyente", confidence=0.3, model_version=MOOD_MODEL_VERSION
 )
@@ -57,7 +60,7 @@ _OUT_OF_SET_RESULT = MoodResult(label="angry", confidence=0.55, model_version=MO
 class ScriptableMockMoodEstimator:
     """Mood estimator whose output is controlled by byte markers in the raw image.
 
-    Marker precedence: MOODFAIL > FELIZ > TRIST > NOCONCLUSIVE > OOSET > default.
+    Marker precedence: MOODFAIL > FELIZ > TRIST > ENOJO > NOCONCLUSIVE > OOSET > default.
     This lets a single valid-JPEG fixture encode a mood case via its COM segment
     while still decoding successfully under Pillow.
     """
@@ -71,6 +74,8 @@ class ScriptableMockMoodEstimator:
             return _FELIZ_RESULT
         if MOOD_TRISTE_MARKER in face_image:
             return _TRISTE_RESULT
+        if MOOD_ENOJO_MARKER in face_image:
+            return _ENOJO_RESULT
         if MOOD_NO_CONCLUSIVE_MARKER in face_image:
             return _NO_CONCLUSIVE_RESULT
         if MOOD_OUT_OF_SET_MARKER in face_image:

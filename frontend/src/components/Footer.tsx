@@ -9,10 +9,10 @@ const Footer: React.FC = () => {
       <div className="container">
         {/* Logo monocromo — filter invert(1) brightness(2) → blanco sobre #181715 (§4.0) */}
         <a href="/" className="footer-logo" aria-label="Snoop Consulting">
-          <img src="logo-snoop-black.svg" alt="Snoop Consulting" width="120" height="28" />
+          <img src="/logo-snoop-black.svg" alt="Snoop Consulting" width="120" height="28" />
         </a>
         <p className="credits">
-          © {year} Snoop Consulting · Face Insight Demo · Especificación SDD
+          © {year} Snoop Consulting · BioScan · Biometría transitoria y protegida
         </p>
       </div>
     </footer>

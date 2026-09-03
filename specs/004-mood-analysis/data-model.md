@@ -14,7 +14,7 @@ The result of a single mood analysis, returned to the frontend and held in clien
 
 | Field | Type | Required | Validation / Notes |
 |-------|------|----------|--------------------|
-| `label` | `str` | yes | ∈ `{neutral, feliz, triste, sorprendido, no concluyente}` (FR-004). Normalized from the port output; out-of-set/low-quality → `no concluyente`. |
+| `label` | `str` | yes | ∈ `{neutral, feliz, triste, sorprendido, enojo, no concluyente}` (FR-004). Normalized from the port output; out-of-set/low-quality → `no concluyente`. |
 | `confidence` | `float \| None` | no | `float ∈ [0.0, 1.0]` when present, or `None`/omitted when the estimator does not produce one (FR-012a). Clamped to `[0,1]` by the service. Rendered as `≈NN%` (nearest integer) in the frontend; omitted from the UI when null. |
 | `disclaimer` | `str` | yes | Fixed PRD §8 string, returned verbatim (FR-003). |
 
@@ -99,7 +99,7 @@ class MoodService:
 ### Label normalization — `normalize_mood_label(label: str) -> str`
 
 ```
-VALID_LABELS = {"neutral", "feliz", "triste", "sorprendido", "no concluyente"}
+VALID_LABELS = {"neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"}
 normalize_mood_label(label) = label if label in VALID_LABELS else "no concluyente"
 ```
 

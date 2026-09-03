@@ -2,7 +2,7 @@
 
 Asserts request/response shapes + status codes per
 ``specs/004-mood-analysis/contracts/analysis-mood.md``:
-  - T010: 200 success shape (label ∈ valid set, confidence ∈ [0,1] or null,
+   - T010: 200 success shape (label ∈ valid set, confidence ∈ [0,1] or null,
     disclaimer == exact PRD §8 string).
   - T017: 400 capture-quality codes (no_face/multiple_faces/invalid_image/
     insufficient_quality) + 500 internal_error + pinned error body shape +
@@ -34,7 +34,7 @@ MOOD_DISCLAIMER = (
     "Resultado estimado por un modelo visual. No representa una medición "
     "objetiva del estado emocional."
 )
-VALID_LABELS = {"neutral", "feliz", "triste", "sorprendido", "no concluyente"}
+VALID_LABELS = {"neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"}
 
 UNAUTHENTICATED_BODY = {
     "error": {

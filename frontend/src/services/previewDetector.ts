@@ -10,6 +10,38 @@ export type PreviewDetection = {
   frameAt: number; // Date.now() of sampled frame
 };
 
+/** Map intrinsic coordinates into a centered object-fit: cover display. */
+export function mapPreviewDetectionToDisplay(
+  detection: PreviewDetection,
+  videoWidth: number,
+  videoHeight: number,
+  displayWidth: number,
+  displayHeight: number,
+): PreviewDetection {
+  const sourceWidth = videoWidth || 640;
+  const sourceHeight = videoHeight || 480;
+  const targetWidth = displayWidth || 640;
+  const targetHeight = displayHeight || 480;
+  const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+  const offsetX = (targetWidth - sourceWidth * scale) / 2;
+  const offsetY = (targetHeight - sourceHeight * scale) / 2;
+  const mapPoint = (point: PreviewLandmark): PreviewLandmark => ({
+    x: point.x * scale + offsetX,
+    y: point.y * scale + offsetY,
+  });
+
+  return {
+    ...detection,
+    box: {
+      x: detection.box.x * scale + offsetX,
+      y: detection.box.y * scale + offsetY,
+      width: detection.box.width * scale,
+      height: detection.box.height * scale,
+    },
+    ...(detection.landmarks ? { landmarks: detection.landmarks.map(mapPoint) } : {}),
+  };
+}
+
 export interface PreviewDetector {
   /** Detect faces in the current <video> frame. Never throws — returns [] on failure/empty. */
   detect(video: HTMLVideoElement): Promise<PreviewDetection[]>;

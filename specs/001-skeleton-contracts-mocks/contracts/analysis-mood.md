@@ -22,7 +22,7 @@ Processes a capture to estimate mood. **Requires session.**
 }
 ```
 
-- `label`: one of `neutral`, `feliz`, `triste`, `sorprendido`, `no concluyente` (PRD §6.4). Mock returns `"neutral"`.
+- `label`: one of `neutral`, `feliz`, `triste`, `sorprendido`, `enojo`, `no concluyente` (PRD §6.4). Mock returns `"neutral"`.
 - `confidence`: float ∈ [0, 1]. Mock returns `0.74`.
 - `disclaimer`: fixed string (PRD §6.4 — must communicate this is a model inference, not objective measurement).
 

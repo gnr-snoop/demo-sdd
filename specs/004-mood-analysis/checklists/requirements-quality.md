@@ -15,7 +15,7 @@
 ## Requirement Completeness
 
 - [ ] CHK001 Are all mood response fields (`label`, `confidence`, `disclaimer`) explicitly defined with type, allowed values, and optionality in the requirements? [C, Spec §FR-002 / Assumptions]
-- [ ] CHK002 Is the complete valid label set `{neutral, feliz, triste, sorprendido, no concluyente}` enumerated in a single normative location, with all other references pointing to it rather than re-listing? [C, Spec §FR-004 / FR-002]
+- [ ] CHK002 Is the complete valid label set `{neutral, feliz, triste, sorprendido, enojo, no concluyente}` enumerated in a single normative location, with all other references pointing to it rather than re-listing? [C, Spec §FR-004 / FR-002]
 - [ ] CHK003 Are all error codes (`unauthenticated`, `no_face`, `multiple_faces`, `invalid_image`, `insufficient_quality`, `internal_error`) enumerated with their corresponding HTTP status codes (401/400/400/400/400/500)? [C, Spec §FR-006 / FR-007]
 - [ ] CHK004 Is the exact `disclaimer` string pinned verbatim in the requirements, with a requirement that it be returned and rendered unchanged? [C, Spec §FR-003]
 - [ ] CHK005 Is the evaluation order of endpoint conditions (session → image decode → detect → estimate → normalize → respond) specified as a requirement, not only in clarifications? [C, Spec §FR-005]

@@ -17,7 +17,7 @@ from face_insight.adapters.ml import (
 )
 
 # PRD §6.4 label set.
-_PRD_LABELS = frozenset({"neutral", "feliz", "triste", "sorprendido", "no concluyente"})
+_PRD_LABELS = frozenset({"neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"})
 
 
 def test_afew_map_covers_all_8_classes():
@@ -33,10 +33,10 @@ def test_afew_map_values_are_prd_labels():
 
 def test_afew_map_emotion_to_prd_semantics():
     """FR-005: Neutral→neutral, Happy→feliz, Sad→triste, Surprise→sorprendido,
-    and Anger/Contempt/Disgust/Fear→no concluyente (per the hsemotion-onnx
+    Anger→enojo, and Contempt/Disgust/Fear→no concluyente (per the hsemotion-onnx
     library's ``idx_to_class`` ordering for ``enet_b0_8_best_afew``)."""
     expected = {
-        "Anger": "no concluyente",
+        "Anger": "enojo",
         "Contempt": "no concluyente",
         "Disgust": "no concluyente",
         "Fear": "no concluyente",
@@ -72,7 +72,6 @@ def test_default_mood_confidence_threshold():
         (6, 0.7, 0.5, "triste"),      # Sadness
         (7, 0.6, 0.5, "sorprendido"),  # Surprise
         # Unmapped AFEW classes → no concluyente regardless of confidence.
-        (0, 0.99, 0.5, "no concluyente"),  # Anger
         (1, 0.99, 0.5, "no concluyente"),  # Contempt
         (2, 0.99, 0.5, "no concluyente"),  # Disgust
         (3, 0.99, 0.5, "no concluyente"),  # Fear
@@ -82,8 +81,9 @@ def test_default_mood_confidence_threshold():
         # Boundary: prob == threshold → NOT overridden (strict <).
         (4, 0.5, 0.5, "feliz"),
         (5, 0.5, 0.5, "neutral"),
-        # Threshold = 0 → nothing overridden (prob >= 0 always).
-        (0, 0.0, 0.0, "no concluyente"),  # Anger → no concluyente by mapping
+        # Anger is now a supported label.
+        (0, 0.99, 0.5, "enojo"),          # Anger
+        (0, 0.0, 0.0, "enojo"),            # Anger at threshold boundary
         (4, 0.0, 0.0, "feliz"),           # Happiness, prob 0, threshold 0 → passes
     ],
 )

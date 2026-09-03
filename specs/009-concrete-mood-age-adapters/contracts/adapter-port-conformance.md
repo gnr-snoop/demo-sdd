@@ -19,9 +19,9 @@ estimate_mood(face_image: bytes) -> MoodResult
 | **License** | Apache 2.0 (HSEmotion/EmotiEffLib code + model) — satisfies Constitution Principle III |
 | **`model_version`** | `"emotieff-enet-b0-afew-v1"` (distinct from `mock-mood-v1`, FR-003) |
 | **Input** | Image bytes (the raw analysis capture; alignment is performed internally — see below) |
-| **Output — valid prediction** | `MoodResult(label=AFEW_TO_PRD_LABEL_MAP[argmax], confidence=top1_prob, model_version="emotieff-enet-b0-afew-v1")` with `label` in `{neutral, feliz, triste, sorprendido, no concluyente}` and `confidence` in [0, 1] |
+| **Output — valid prediction** | `MoodResult(label=AFEW_TO_PRD_LABEL_MAP[argmax], confidence=top1_prob, model_version="emotieff-enet-b0-afew-v1")` with `label` in `{neutral, feliz, triste, sorprendido, enojo, no concluyente}` and `confidence` in [0, 1] |
 | **Output — low confidence** | When `top1_prob < mood_confidence_threshold` → `MoodResult(label="no concluyente", confidence=top1_prob, ...)` (FR-006) |
-| **Label mapping** | AFEW 8-class → PRD §6.4: Neutral→neutral, Happy→feliz, Sad→triste, Surprise→sorprendido, Anger/Disgust/Fear/Contempt→no concluyente (FR-005) |
+| **Label mapping** | AFEW 8-class → PRD §6.4: Neutral→neutral, Happy→feliz, Sad→triste, Surprise→sorprendido, Anger→enojo, Disgust/Fear/Contempt→no concluyente (FR-005) |
 | **Alignment** | Internally: decode → YuNet detect → `face_crop` (`cv2.FaceRecognizerSF.alignCrop`) → `predict_probs`. Mirrors `SFaceEmbedder` double-detection (spec 008 R-5) |
 | **Construction** | Loads model via `ModelDownloader.ensure()` + a YuNet instance + an SFace recognizer (for `alignCrop`, all cached from spec 008); reads `mood_confidence_threshold` from settings |
 | **Fail-fast** | `ModelUnavailableError` / `ModelCorruptError` at construction, naming the model (FR-009); inference failure → `MoodInternalError` (existing domain mapping, unchanged) |

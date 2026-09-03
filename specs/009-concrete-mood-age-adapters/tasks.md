@@ -45,7 +45,7 @@ description: "Task list for Concrete Mood & Age Estimation ML Adapters (Fase 5b)
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [X] T002 Add `mood_confidence_threshold: float = 0.5` field + a `field_validator` clamping to `[0.0, 1.0]` to `backend/src/face_insight/config.py` `Settings` (env: `MOOD_CONFIDENCE_THRESHOLD`), mirroring the `age_range_half_width_years` pattern (FR-006, R-5)
-- [X] T003 [P] Add mood/age model constants to `backend/src/face_insight/adapters/ml/constants.py`: `EMOTIEFF_MODEL_FILENAME`/`URL`/`VERSION` (`"emotieff-enet-b0-afew-v1"`)/`LICENSE` (`"Apache-2.0"`), `MIVOLO_CHECKPOINT_FILENAME`/`URL`/`VERSION` (`"mivolo-volo-d1-face-v1"`)/`LICENSE`, `AFEW_TO_PRD_LABEL_MAP` (0→neutral, 1→feliz, 2→triste, 3→sorprendido, 4-7→no concluyente), and `DEFAULT_MOOD_CONFIDENCE_THRESHOLD = 0.5` (FR-003, FR-005, R-4, R-8)
+- [X] T003 [P] Add mood/age model constants to `backend/src/face_insight/adapters/ml/constants.py`: `EMOTIEFF_MODEL_FILENAME`/`URL`/`VERSION` (`"emotieff-enet-b0-afew-v1"`)/`LICENSE` (`"Apache-2.0"`), `MIVOLO_CHECKPOINT_FILENAME`/`URL`/`VERSION` (`"mivolo-volo-d1-face-v1"`)/`LICENSE`, `AFEW_TO_PRD_LABEL_MAP` (0→enojo, 1-3→no concluyente, 4→feliz, 5→neutral, 6→triste, 7→sorprendido), and `DEFAULT_MOOD_CONFIDENCE_THRESHOLD = 0.5` (FR-003, FR-005, R-4, R-8)
 - [X] T004 Extend `backend/tests/domain/test_domain_purity.py` forbidden-import lists (`FORBIDDEN_PREFIXES` and `REAL_ML_PREFIXES`) with `timm`, `hsemotion`, `emotiefflib`, `mivolo` (FR-012, R-9)
 - [X] T005 Add exports for `EmotiEffMoodEstimator`, `MiVOLOAgeEstimator`, and the new constants to `backend/src/face_insight/adapters/ml/__init__.py` (forward references — the modules are created in US1/US2; the exports resolve once those land)
 

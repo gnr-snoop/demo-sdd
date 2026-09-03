@@ -57,6 +57,10 @@ describe("Login preview reuse (T021, SC-002)", () => {
     const toggle = await screen.findByTestId("overlay-toggle");
     expect(toggle).toBeInTheDocument();
 
+    const stage = screen.getByTestId("camera-preview").parentElement;
+    expect(stage).toHaveClass("camera-stage");
+    expect(stage?.querySelector("[data-testid='face-overlay']")).toBeInTheDocument();
+
     fireEvent.click(toggle);
     await waitFor(() => expect(toggle).toHaveAttribute("aria-pressed", "true"));
 

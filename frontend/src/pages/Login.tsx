@@ -6,7 +6,7 @@
 // with the generic message; on 400 capture code → recoverable_error with actionable message.
 
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import Nav from "../components/Nav";
 import CameraCapture from "../components/CameraCapture";
@@ -71,83 +71,91 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="page-frame page-centered">
       <Nav />
-      <main>
-        <h1 data-testid="page-login">Login</h1>
-        <p data-testid="login-state-label">Estado: {machine.label}</p>
-
-        {/* Identifier (visible until terminal). */}
-        {machine.state !== "success_redirect" && (
-          <div>
-            <label htmlFor="login-identifier">Identificador (email o usuario)</label>
-            <input
-              id="login-identifier"
-              type="text"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="demo@example.com"
-              disabled={machine.state !== "idle"}
-              aria-label="Identificador"
-              data-testid="identifier-input"
+      <main className="auth-page">
+        <section className="auth-camera" aria-label="Cámara de autenticación facial">
+          <div className="status-pill auth-camera-label">
+            <span>{cameraActive ? "Cámara activa" : "Cámara protegida"}</span>
+          </div>
+          {cameraActive ? (
+            <CameraCapture
+              active={cameraActive}
+              onCapture={handleCapture}
+              onPermissionGranted={handlePermissionGranted}
+              onPermissionDenied={handlePermissionDenied}
+              disabled={machine.isProcessing}
             />
+          ) : (
+            <div className="camera-placeholder">
+              <span className="material-symbols-outlined" aria-hidden="true">face</span>
+              <span>Coloca tu rostro en el encuadre para iniciar</span>
+            </div>
+          )}
+          <div className="camera-status"><span className="camera-status-dot" /> Procesamiento puntual y seguro</div>
+        </section>
 
-            {machine.state === "idle" && (
-              <button
-                type="button"
-                onClick={handleStartCamera}
-                disabled={!canStart}
-                aria-label="Solicitar cámara"
-                data-testid="start-camera-button"
-              >
-                Solicitar cámara
-              </button>
+        <section className="auth-form">
+          <div>
+            <div className="accent-bar" />
+            <h1 data-testid="page-login">BioScan</h1>
+            <p>Autenticación biométrica segura para tu espacio Snoop.</p>
+            <p className="sr-only" data-testid="login-state-label">Estado: {machine.label}</p>
+
+            {machine.state !== "success_redirect" && (
+              <div className="form-stack">
+                <div className="field">
+                  <label htmlFor="login-identifier">Identificador</label>
+                  <input
+                    id="login-identifier"
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder="nombre@empresa.com"
+                    disabled={machine.state !== "idle"}
+                    aria-label="Identificador"
+                    data-testid="identifier-input"
+                  />
+                </div>
+                {machine.state === "idle" && (
+                  <button
+                    className="button-primary"
+                    type="button"
+                    onClick={handleStartCamera}
+                    disabled={!canStart}
+                    aria-label="Solicitar cámara"
+                    data-testid="start-camera-button"
+                  >
+                    <span className="material-symbols-outlined" aria-hidden="true">fingerprint</span>
+                    Activar cámara y escanear
+                  </button>
+                )}
+              </div>
+            )}
+
+            {machine.state === "camera_unavailable" && (
+              <div className="state-surface" role="alert" data-testid="camera-unavailable-message">
+                <p>{errorMessage}</p>
+                <button className="button-secondary" type="button" onClick={handleReset} aria-label="Reintentar">Reintentar</button>
+              </div>
+            )}
+            {machine.state === "recoverable_error" && (
+              <div className="state-surface" role="alert" data-testid="recoverable-error-message">
+                <p>{errorMessage}</p>
+                <button className="button-secondary" type="button" onClick={handleRetry} aria-label="Reintentar captura" data-testid="retry-button">Reintentar</button>
+              </div>
+            )}
+            {machine.state === "success_redirect" && (
+              <div className="state-surface" data-testid="login-success">
+                <p>Login exitoso. Redirigiendo al dashboard…</p>
+              </div>
             )}
           </div>
-        )}
-
-        {/* Camera (active during permission request + ready + processing). */}
-        {cameraActive && machine.state !== "success_redirect" && (
-          <CameraCapture
-            active={cameraActive}
-            onCapture={handleCapture}
-            onPermissionGranted={handlePermissionGranted}
-            onPermissionDenied={handlePermissionDenied}
-            disabled={machine.isProcessing}
-          />
-        )}
-
-        {/* Camera unavailable. */}
-        {machine.state === "camera_unavailable" && (
-          <div role="alert" data-testid="camera-unavailable-message">
-            <p>{errorMessage}</p>
-            <button type="button" onClick={handleReset} aria-label="Reintentar">
-              Reintentar
-            </button>
+          <div className="auth-footer">
+            <span>¿Necesitas una cuenta?</span>
+            <Link to="/onboarding">Registrarse <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span></Link>
           </div>
-        )}
-
-        {/* Recoverable error. */}
-        {machine.state === "recoverable_error" && (
-          <div role="alert" data-testid="recoverable-error-message">
-            <p>{errorMessage}</p>
-            <button
-              type="button"
-              onClick={handleRetry}
-              aria-label="Reintentar captura"
-              data-testid="retry-button"
-            >
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {/* Success redirect. */}
-        {machine.state === "success_redirect" && (
-          <div data-testid="login-success">
-            <p>¡Login exitoso! Redirigiendo al dashboard…</p>
-          </div>
-        )}
+        </section>
       </main>
     </div>
   );

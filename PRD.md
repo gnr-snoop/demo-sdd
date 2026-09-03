@@ -154,7 +154,7 @@ Cada botón debe generar una captura puntual en el momento de la acción. El sis
 
 ### Resultado de estado de ánimo
 
-El resultado se mostrará como una categoría legible para la persona, por ejemplo `neutral`, `feliz`, `triste`, `sorprendido` o `no concluyente`, acompañada opcionalmente por una confianza presentada como valor aproximado.
+El resultado se mostrará como una categoría legible para la persona, por ejemplo `neutral`, `feliz`, `triste`, `sorprendido`, `enojo` o `no concluyente`, acompañada opcionalmente por una confianza presentada como valor aproximado.
 
 La interfaz debe comunicar que se trata de una inferencia del modelo y no de una medición objetiva del estado emocional real.
 

@@ -1,7 +1,7 @@
 """Unit tests for the MoodService use-case (spec 004, T009/T016).
 
 Covers:
-  - T009: ``normalize_mood_label`` (valid labels pass; out-of-set → ``no concluyente``)
+   - T009: ``normalize_mood_label`` (valid labels pass; out-of-set → ``no concluyente``)
     and confidence clamping to ``[0, 1]`` (None passes through).
   - T016: error-code mapping (``NoFace``/``MultipleFaces``/``InsufficientQuality``/
     ``MoodInternalError`` raised by the orchestration on the corresponding detector /
@@ -22,6 +22,7 @@ from face_insight.domain.exceptions import (
 )
 from face_insight.domain.mood import VALID_LABELS, MoodService, normalize_mood_label
 from face_insight.domain.result_types import BoundingBox, DetectionResult, MoodResult
+from face_insight.adapters.mock.mood_estimator import ScriptableMockMoodEstimator
 
 
 # --- Fake ports ------------------------------------------------------------
@@ -54,7 +55,7 @@ class _FakeMoodEstimator:
 class TestNormalizeMoodLabel:
     @pytest.mark.parametrize(
         "label",
-        ["neutral", "feliz", "triste", "sorprendido", "no concluyente"],
+        ["neutral", "feliz", "triste", "sorprendido", "enojo", "no concluyente"],
     )
     def test_valid_labels_pass_through(self, label: str):
         assert normalize_mood_label(label) == label
@@ -66,12 +67,13 @@ class TestNormalizeMoodLabel:
     def test_out_of_set_normalizes_to_no_concluyente(self, label: str):
         assert normalize_mood_label(label) == "no concluyente"
 
-    def test_valid_labels_set_is_exactly_the_five_prd_labels(self):
+    def test_valid_labels_set_contains_the_six_supported_labels(self):
         assert VALID_LABELS == {
             "neutral",
             "feliz",
             "triste",
             "sorprendido",
+            "enojo",
             "no concluyente",
         }
 
@@ -132,6 +134,19 @@ class TestLabelNormalizationApplied:
         )
         result = svc.analyze(b"\xff\xd8fake")
         assert result.label == "sorprendido"
+
+    def test_anger_label_from_port_is_preserved(self):
+        svc = MoodService(
+            detector=_FakeDetector(CATCH),
+            mood_estimator=_FakeMoodEstimator(MoodResult("enojo", 0.75, "mock-mood-v1")),
+        )
+        result = svc.analyze(b"\xff\xd8fake")
+        assert result.label == "enojo"
+
+    def test_scriptable_mock_can_emit_anger(self):
+        result = ScriptableMockMoodEstimator().estimate_mood(b"ENOJO")
+        assert result.label == "enojo"
+        assert result.confidence == 0.75
 
 
 # ==========================================================================

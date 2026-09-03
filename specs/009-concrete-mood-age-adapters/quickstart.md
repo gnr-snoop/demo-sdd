@@ -68,7 +68,7 @@ cd backend
 APP_MODE=production pytest tests/integration/test_real_ml_adapters.py::test_mood_estimator_valid_label_and_confidence -q
 ```
 
-**Expected**: the mood estimator returns a `MoodResult` with `label` in `{neutral, feliz, triste, sorprendido, no concluyente}`, `confidence` in [0, 1], and `model_version == "emotieff-enet-b0-afew-v1"`.
+**Expected**: the mood estimator returns a `MoodResult` with `label` in `{neutral, feliz, triste, sorprendido, enojo, no concluyente}`, `confidence` in [0, 1], and `model_version == "emotieff-enet-b0-afew-v1"`.
 
 **Manual check**:
 ```bash
@@ -104,7 +104,7 @@ Inspect `backend/src/face_insight/adapters/ml/constants.py` `AFEW_INDEX_TO_EMOTI
 
 | AFEW index | AFEW emotion | PRD label |
 |------------|--------------|-----------|
-| 0 | Anger | `no concluyente` |
+| 0 | Anger | `enojo` |
 | 1 | Contempt | `no concluyente` |
 | 2 | Disgust | `no concluyente` |
 | 3 | Fear | `no concluyente` |
@@ -113,7 +113,7 @@ Inspect `backend/src/face_insight/adapters/ml/constants.py` `AFEW_INDEX_TO_EMOTI
 | 6 | Sadness | `triste` |
 | 7 | Surprise | `sorprendido` |
 
-The four AFEW emotions with no PRD §6.4 category (Anger, Contempt, Disgust, Fear) are reported as `no concluyente` — surfaced as inconclusive rather than dropped or mislabeled. The mapping table is also reproduced (semantically, without indices) in `contracts/adapter-port-conformance.md`. The domain `normalize_mood_label` (spec 004) is the safety net.
+The three AFEW emotions with no PRD §6.4 category (Contempt, Disgust, Fear) are reported as `no concluyente`; Anger is reported as `enojo`. The mapping table is also reproduced (semantically, without indices) in `contracts/adapter-port-conformance.md`. The domain `normalize_mood_label` (spec 004) is the safety net.
 
 ---
 

@@ -6,8 +6,9 @@ POST /api/preview/detect
 - Uses the Detector port (`request.app.state.detector`) — real YuNetDetector in production (Docker + CUDA when available),
   MockDetector in mock mode. Returns ephemeral detections, never persisted/logged.
 - Returns { detections: [{box:{x,y,width,height}, landmarks:[{x,y}], score, faceCount }]}
-  Boxes/landmarks are in the *normalized* image space (after resize to ≤640 long edge).
-  Frontend rescales to video coordinates via scaleX/scaleY.
+  Boxes/landmarks are in the uploaded snapshot's pixel space. The frontend sends
+  a full intrinsic-size video snapshot and maps those coordinates to the visible
+  preview, including any `object-fit: cover` crop.
 """
 
 from __future__ import annotations

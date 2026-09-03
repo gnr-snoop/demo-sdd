@@ -105,7 +105,7 @@ AFEW_TO_PRD_LABEL_MAP = {
 
 The exact AFEW class index → emotion name ordering is taken from the HSEmotion/EmotiEffLib documentation for `enet_b0_8_best_afew.onnx` (AFEW 8-class: Neutral, Happy, Sad, Surprise, Anger, Disgust, Fear, Contempt). The adapter applies the map after `argmax`; the domain `normalize_mood_label` (spec 004) is the safety net that maps any residual out-of-set label to "no concluyente". The mapping table is reproduced in the calibration docs (`quickstart.md` + `contracts/adapter-port-conformance.md`).
 
-**Rationale**: The PRD §6.4 label set is `{neutral, feliz, triste, sorprendido, no concluyente}` — 5 labels. AFEW has 8 classes. The 4 AFEW emotions with no PRD category (Anger, Disgust, Fear, Contempt) are reported as "no concluyente" rather than dropped (which would lose information that a prediction was made) or mislabeled (which would be wrong). This is the mapping pinned by the orchestrator and the spec's clarification.
+**Rationale**: The PRD §6.4 label set is `{neutral, feliz, triste, sorprendido, enojo, no concluyente}` — 6 labels. AFEW has 8 classes. The 3 AFEW emotions with no PRD category (Disgust, Fear, Contempt) are reported as "no concluyente"; Anger is reported as "enojo".
 
 **Alternatives considered**:
 - *Dropping the 4 unmapped classes (return None / skip)*: rejected — loses the signal that a prediction was made; "no concluyente" is the PRD's intended bucket for "not classifiable into the supported set."
